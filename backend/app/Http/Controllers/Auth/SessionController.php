@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Audit\AuditLogger;
 use App\Http\Middleware\EnsureTenantContext;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
@@ -37,8 +38,12 @@ abstract class SessionController
         );
 
         if (! $signedIn) {
+            // Attempted e-mail is kept for security review; never the password.
+            app(AuditLogger::class)->record('auth.login_failed', data: ['guard' => $this->guard(), 'email' => $credentials['email']], cooperativeId: false);
+
             throw ValidationException::withMessages(['email' => __('auth.failed')]);
         }
+        app(AuditLogger::class)->record('auth.login', actor: Auth::guard($this->guard())->user(), cooperativeId: false);
 
         Auth::guard($this->otherGuard())->logoutCurrentDevice();
         // A new sign-in never inherits a previous user's cooperative selection.
@@ -56,6 +61,7 @@ abstract class SessionController
 
     public function destroy(Request $request): Response
     {
+        app(AuditLogger::class)->record('auth.logout', actor: $request->user(), cooperativeId: false);
         Auth::guard($this->guard())->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

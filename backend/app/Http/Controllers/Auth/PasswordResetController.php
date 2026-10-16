@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Audit\AuditLogger;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
@@ -48,6 +49,7 @@ class PasswordResetController
                 ])->save();
 
                 event(new PasswordReset($user));
+                app(AuditLogger::class)->record('auth.password_reset', $user, actor: $user, cooperativeId: false);
             },
         );
 

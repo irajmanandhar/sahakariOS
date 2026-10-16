@@ -21,6 +21,7 @@ export default function HomePage() {
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -37,6 +38,18 @@ export default function HomePage() {
       setSession({ user, membership, branches, businessDay });
     })().catch((err) => redirectForAuthError(err, router.replace) || setError(errorMessage(err)));
   }, [router]);
+
+  const can = (permission: string) => session?.membership.permissions?.includes(permission) ?? false;
+
+  async function changeBusinessDay(action: 'open' | 'close') {
+    setError(null);
+    try {
+      const { data } = await api<{ data: BusinessDay }>(`/business-day/${action}`, { method: 'POST' });
+      setSession((s) => (s ? { ...s, businessDay: data.status === 'open' ? data : null } : s));
+    } catch (err) {
+      if (!redirectForAuthError(err, router.replace)) setActionError(errorMessage(err));
+    }
+  }
 
   async function signOut() {
     await api('/auth/logout', { method: 'POST' }).catch(() => undefined);
@@ -92,6 +105,23 @@ export default function HomePage() {
             No business day is open.
           </Alert>
         )}
+        {actionError && (
+          <Alert severity="error" sx={{ mt: 1 }} onClose={() => setActionError(null)}>
+            {actionError}
+          </Alert>
+        )}
+        <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
+          {!session.businessDay && can('business_day.open') && (
+            <Button variant="contained" onClick={() => changeBusinessDay('open')}>
+              Open today&apos;s business day
+            </Button>
+          )}
+          {session.businessDay && can('business_day.close') && (
+            <Button variant="outlined" onClick={() => changeBusinessDay('close')}>
+              Close business day
+            </Button>
+          )}
+        </Box>
         <Box sx={{ mt: 3 }}>
           <Typography variant="h6" component="h2">
             Branches

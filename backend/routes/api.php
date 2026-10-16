@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\PlatformSessionController;
 use App\Http\Controllers\Auth\StaffSessionController;
@@ -39,6 +40,9 @@ Route::middleware('web')->group(function () {
         Route::get('/branches', [BranchController::class, 'index']);
         Route::get('/branches/{branch}', [BranchController::class, 'show']);
         Route::get('/business-day', [BusinessDayController::class, 'show']);
+        Route::post('/business-day/open', [BusinessDayController::class, 'open'])->middleware('can:business_day.open');
+        Route::post('/business-day/close', [BusinessDayController::class, 'close'])->middleware('can:business_day.close');
+        Route::get('/audit-logs', [AuditLogController::class, 'index'])->middleware('can:audit_log.view');
     });
 
     Route::prefix('platform/auth')->group(function () {

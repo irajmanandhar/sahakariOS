@@ -75,6 +75,45 @@ Why:
 First consumer: `GET /api/branches`, `GET /api/branches/{branch}` (read-only).
 PLANNED: queued jobs must carry `cooperative_id` and set the context; platform-admin tenant access.
 
+## 2b. Roles, permissions and audit log — IMPLEMENTED (tested)
+
+**Permissions** are fixed strings in code (`App\Authorization\Permission`): `business_day.open`,
+`business_day.close`, `audit_log.view`. A case is added only together with the code that checks it.
+
+**Roles** belong to one cooperative (`roles`, `role_permissions`). They are given to a user's
+membership in that cooperative (`cooperative_user_roles`); composite foreign keys make the database
+refuse a role for someone outside the role's cooperative. **No roles or permissions exist by
+default**; the local seeder creates a demo "Manager" role only for synthetic data.
+
+- Checked with Laravel Gates (`can:business_day.open` route middleware), evaluated only inside the
+  tenant context: roles from cooperative A never apply while cooperative B is selected; with no
+  tenant context nothing is allowed; platform admins hold no cooperative permissions.
+- Not cached: revoking a role takes effect on the next request.
+- `GET/PUT /api/auth/cooperative` return `permissions` so the UI can hide actions. Hiding is
+  cosmetic; every action is enforced by the API.
+- Not built yet: role administration API/UI, segregation of duties (maker ≠ checker), amount limits.
+
+**Audit log** (`audit_logs`), written by `App\Audit\AuditLogger` in the same database transaction
+as the change it describes (if the change rolls back, so does the entry):
+- Recorded now: `auth.login`, `auth.login_failed` (attempted e-mail, never the password),
+  `auth.logout`, `auth.password_reset`, `tenant.selected`, `fiscal_year.opened`,
+  `business_day.opened`, `business_day.closed`; with actor, subject, IP and user agent.
+- Chains: one per cooperative (`cooperative:<id>`) plus `global` (sign-in events, which belong to
+  no cooperative yet). Each row stores SHA-256 of its content + the previous row's hash.
+- Append-only: MySQL triggers reject UPDATE and DELETE (tested). `php artisan audit:verify`
+  recomputes the chains and reports edited, deleted or missing rows (tested by bypassing the
+  triggers).
+- Limits: someone with full database rights could rewrite a whole chain consistently. Planned:
+  periodically export the chain heads (`audit_chains.last_hash`) somewhere the database
+  administrator cannot change.
+- `GET /api/audit-logs` (permission `audit_log.view`) lists only the selected cooperative's chain.
+- Requires MySQL `log_bin_trust_function_creators=1` so the app user can create the triggers
+  (set in `docker-compose.yml` and CI; **must be set on production MySQL**).
+
+Patterns considered from the Hajir project: its permission-gated UI and audit masking were reused
+as ideas; its global (non-tenant) roles, client-supplied company id, editable audit table and
+tokens in localStorage were deliberately not copied.
+
 ## 3. Endpoints — IMPLEMENTED (tested)
 
 | Method | Path | Notes |
@@ -89,6 +128,10 @@ PLANNED: queued jobs must carry `cooperative_id` and set the context; platform-a
 | GET | `/api/auth/cooperative` | staff: current choice or `null` |
 | PUT | `/api/auth/cooperative` | staff: `{cooperative_id}` → 200 or 403 |
 | GET | `/api/branches`, `/api/branches/{id}` | staff + tenant: current cooperative's branches |
+| GET | `/api/business-day` | staff + tenant: current business day (AD + BS) |
+| POST | `/api/business-day/open` | `business_day.open`; optional `{date}`, default today (Nepal) → 201 or 422 reason |
+| POST | `/api/business-day/close` | `business_day.close` |
+| GET | `/api/audit-logs` | `audit_log.view`; cursor-paginated, newest first |
 | POST | `/api/platform/auth/login` | same contract as staff login |
 | GET | `/api/platform/auth/me` | |
 | POST | `/api/platform/auth/logout` | |

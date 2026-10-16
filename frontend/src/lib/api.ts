@@ -20,6 +20,8 @@ export type User = { id: number; name: string; email: string };
 export type Membership = {
   cooperative: { id: number; code: string; name: string; status: string };
   branch: { id: number; code: string; name: string };
+  /** Present on the current selection only. Hides actions in the UI; the API enforces them. */
+  permissions?: string[];
 };
 
 export type BusinessDay = {

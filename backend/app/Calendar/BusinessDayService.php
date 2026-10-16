@@ -2,6 +2,7 @@
 
 namespace App\Calendar;
 
+use App\Audit\AuditLogger;
 use App\Models\BusinessDay;
 use App\Models\Cooperative;
 use App\Models\FiscalYear;
@@ -24,7 +25,7 @@ class BusinessDayService
 {
     public const TIMEZONE = 'Asia/Kathmandu';
 
-    public function __construct(private BsCalendar $calendar, private TenantContext $tenant) {}
+    public function __construct(private BsCalendar $calendar, private TenantContext $tenant, private AuditLogger $audit) {}
 
     public function current(): ?BusinessDay
     {
@@ -58,7 +59,7 @@ class BusinessDayService
                 ->first()
                 ?? throw new CalendarRuleViolation('No open fiscal year covers this date.');
 
-            return BusinessDay::query()->forceCreate([
+            $day = BusinessDay::query()->forceCreate([
                 'cooperative_id' => $this->tenant->cooperativeId(),
                 'fiscal_year_id' => $fiscalYear->id,
                 'business_date' => $date,
@@ -66,6 +67,9 @@ class BusinessDayService
                 'opened_by' => $by?->id,
                 'opened_at' => now(),
             ]);
+            $this->audit->record('business_day.opened', $day, ['business_date' => $date], $by);
+
+            return $day;
         });
     }
 
@@ -76,6 +80,7 @@ class BusinessDayService
 
             $day = $this->current() ?? throw new CalendarRuleViolation('There is no open business day.');
             $day->forceFill(['status' => 'closed', 'closed_by' => $by?->id, 'closed_at' => now()])->save();
+            $this->audit->record('business_day.closed', $day, ['business_date' => $day->business_date->format('Y-m-d')], $by);
 
             return $day;
         });

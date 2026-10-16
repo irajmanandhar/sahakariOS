@@ -10,7 +10,9 @@ services:
       MYSQL_USER: sahakarios
       MYSQL_PASSWORD: local_dev_only
       MYSQL_ROOT_PASSWORD: local_dev_root_only
-    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    # log-bin-trust-function-creators: lets the app user create the triggers that
+    # make audit_logs append-only while binary logging is on (MySQL 8.4 default).
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--log-bin-trust-function-creators=1"]
     volumes:
       - mysql-data:/var/lib/mysql
       - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro

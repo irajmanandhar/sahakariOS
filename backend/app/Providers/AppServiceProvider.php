@@ -2,11 +2,15 @@
 
 namespace App\Providers;
 
+use App\Authorization\Authorizer;
+use App\Authorization\Permission;
 use App\Calendar\BsCalendar;
+use App\Models\User;
 use App\Tenancy\TenantContext;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -31,6 +35,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // One Gate ability per permission, e.g. can:business_day.open. Only staff
+        // users can hold permissions, and only inside the selected cooperative.
+        foreach (Permission::cases() as $permission) {
+            Gate::define($permission->value, fn (User $user) => app(Authorizer::class)->allows($user, $permission));
+        }
+
         // Login: 5/min per account+IP (guessing one password), 20/min per IP
         // (spraying many accounts). Keyed by path so staff and platform
         // logins are counted separately. Keys are hashed by the limiter.

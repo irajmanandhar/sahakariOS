@@ -44,6 +44,8 @@ jobs:
           php-version: "8.4"
           extensions: pdo_mysql, bcmath, intl, redis
           coverage: none
+      - name: Allow trigger creation (audit log is append-only via triggers)
+        run: mysql -h 127.0.0.1 -uroot -pci_root_only -e "SET GLOBAL log_bin_trust_function_creators = 1"
       - run: composer install --no-interaction --no-progress --prefer-dist
       - run: cp .env.example .env && php artisan key:generate
       - run: ./vendor/bin/pint --test

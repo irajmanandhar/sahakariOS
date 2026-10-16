@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import LoginPage from './page';
 
 const replace = vi.fn();
-vi.mock('next/navigation', () => ({ useRouter: () => ({ replace, push: vi.fn() }) }));
+// Stable object, like Next's real router (a new object per render would re-run effects).
+const router = { replace, push: vi.fn() };
+vi.mock('next/navigation', () => ({ useRouter: () => router }));
 
 const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), { status, headers });

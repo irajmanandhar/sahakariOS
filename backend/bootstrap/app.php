@@ -1,5 +1,8 @@
 <?php
 
+use App\Audit\VerifyAuditLog;
+use App\Calendar\CalendarRuleViolation;
+use App\Calendar\OutOfCalendarRange;
 use App\Http\Middleware\EnsureAccountCanSignIn;
 use App\Http\Middleware\EnsureTenantContext;
 use Illuminate\Foundation\Application;
@@ -32,7 +35,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(null);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Business-rule refusals carry staff-safe messages.
+        $exceptions->render(fn (CalendarRuleViolation|OutOfCalendarRange $e) => response()->json(['message' => $e->getMessage()], 422));
+
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
-    })->create();
+    })
+    ->withCommands([VerifyAuditLog::class])
+    ->create();

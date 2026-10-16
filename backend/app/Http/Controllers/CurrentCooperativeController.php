@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Audit\AuditLogger;
+use App\Authorization\Authorizer;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Models\User;
+use App\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,7 +30,9 @@ class CurrentCooperativeController
         $membership = $cooperativeId === null ? null
             : $this->memberships($request->user())->where('cooperatives.id', $cooperativeId)->first(self::COLUMNS);
 
-        return response()->json(['data' => $membership ? $this->present($membership) : null]);
+        return response()->json(['data' => $membership ? $this->present($membership) + [
+            'permissions' => $this->permissionsIn($membership),
+        ] : null]);
     }
 
     public function update(Request $request): JsonResponse
@@ -46,8 +51,16 @@ class CurrentCooperativeController
         // Changing what the session may act for: rotate the session ID.
         $request->session()->migrate(true);
         $request->session()->put(EnsureTenantContext::SESSION_KEY, $membership->id);
+        app(AuditLogger::class)->record('tenant.selected', cooperativeId: $membership->id);
 
-        return response()->json(['data' => $this->present($membership)]);
+        return response()->json(['data' => $this->present($membership) + ['permissions' => $this->permissionsIn($membership)]]);
+    }
+
+    /** What the user may do in that cooperative, so the UI can hide actions it would refuse anyway. */
+    private function permissionsIn($membership): array
+    {
+        return app(TenantContext::class)->runAs($membership->id, $membership->pivot->branch_id,
+            fn () => app(Authorizer::class)->permissions(request()->user()));
     }
 
     private const COLUMNS = [
