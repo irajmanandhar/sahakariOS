@@ -71,3 +71,29 @@ describe('destinationAfterLogin', () => {
     expect(await destinationAfterLogin()).toBe('/select-cooperative');
   });
 });
+
+describe('api uploads and field errors', () => {
+  it('sends FormData without forcing a JSON content type', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: { id: 1 } }), { status: 201 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const form = new FormData();
+    form.append('type', 'photo');
+
+    await api('/members/1/documents', { form });
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.method).toBe('POST');
+    expect(init.body).toBe(form);
+    expect(init.headers['Content-Type']).toBeUndefined();
+  });
+
+  it('keeps Laravel field errors by path', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      message: 'x', errors: { 'kym.mother_name': ['The mother name field is required.'] },
+    }), { status: 422 })));
+
+    const error = (await api('/members', { method: 'POST', body: {} }).catch((e: unknown) => e)) as ApiError;
+
+    expect(error.fieldErrors['kym.mother_name']).toEqual(['The mother name field is required.']);
+  });
+});

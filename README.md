@@ -49,7 +49,8 @@ curl http://localhost:8080/api/health         # {"status":"ok","checks":{"databa
 docker compose exec api php artisan migrate      # local dev database only
 docker compose exec api php artisan db:seed      # synthetic demo data; refuses non-local environments
 ```
-Open http://localhost:3000 and sign in as `staff@demo.test` / `local-dev-password` (local only).
+Open http://localhost:3000 and sign in as `staff@demo.test` or `approver@demo.test`, password
+`local-dev-password` (local only). Use the second user to approve what the first entered.
 
 ## Tests
 

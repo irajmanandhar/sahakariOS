@@ -10,11 +10,13 @@ import Typography from '@mui/material/Typography';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useState } from 'react';
 import { api, destinationAfterLogin, errorMessage } from '@/lib/api';
+import { useHydrated } from '@/lib/useHydrated';
 
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const hydrated = useHydrated();
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -40,7 +42,7 @@ export default function LoginPage() {
         <Typography variant="h5" component="h1" gutterBottom>
           SahakariOS sign in
         </Typography>
-        <Stack component="form" spacing={2} onSubmit={onSubmit} noValidate>
+        <Stack component="form" method="post" spacing={2} onSubmit={onSubmit} noValidate>
           {error && <Alert severity="error">{error}</Alert>}
           <TextField label="Email" name="email" type="email" autoComplete="username" required fullWidth />
           <TextField
@@ -51,7 +53,7 @@ export default function LoginPage() {
             required
             fullWidth
           />
-          <Button type="submit" variant="contained" disabled={submitting}>
+          <Button type="submit" variant="contained" disabled={!hydrated || submitting}>
             {submitting ? 'Signing in…' : 'Sign in'}
           </Button>
         </Stack>

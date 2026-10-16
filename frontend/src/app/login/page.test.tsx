@@ -23,6 +23,16 @@ afterEach(() => {
 });
 
 describe('LoginPage', () => {
+  it('never submits natively: POST form, button disabled until hydrated', async () => {
+    const { renderToString } = await import('react-dom/server');
+    const serverHtml = renderToString(<LoginPage />);
+    expect(serverHtml).toMatch(/<form[^>]*method="post"/);
+    expect(serverHtml).toMatch(/<button[^>]*disabled[^>]*type="submit"|<button[^>]*type="submit"[^>]*disabled/);
+
+    render(<LoginPage />);
+    expect((screen.getByRole('button', { name: /sign in/i }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it('shows the server message on bad credentials and stays on the page', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       json({ message: 'x', errors: { email: ['These credentials do not match our records.'] } }, 422),

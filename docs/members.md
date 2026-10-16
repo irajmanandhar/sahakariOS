@@ -43,6 +43,19 @@ identity data cannot be decrypted.** Back it up securely and separately from dat
 Rotating it requires re-encrypting `member_kyc_versions` and recomputing the hashes — no tool
 for that exists yet.
 
+## Frontend — IMPLEMENTED (tested)
+
+`/members` (list, filters incl. "KYM review due"), `/members/new` (Schedule-1 form, field-level
+server errors), `/members/[id]` (details, document upload/view, risk, approve/reject, audited KYM
+view). Buttons follow the permissions returned by `/api/auth/cooperative`; the API enforces them.
+
+Forms are `method="post"` and their submit button stays disabled until React has hydrated, so a
+click or Enter before the JavaScript loads can never do a native GET that would put passwords or
+ID numbers into the URL (found during browser testing, fixed and tested).
+
+Checked end to end in headless Chrome: apply → upload 4 documents → assess risk → the same person
+is refused → a second user approves (member number assigned) → decrypted KYM shown.
+
 ## Not built yet (PLANNED)
 
 - Legal-person members (Schedule-2), member exit and share refund.
@@ -50,4 +63,4 @@ for that exists yet.
 - Sanctions screening, PEP list maintenance, TTR/STR and source-of-funds capture — these attach
   to transactions (shares, savings).
 - Record-retention and legal-hold automation; annual Schedule-3 report.
-- Frontend screens for members (next step).
+- BS date entry in forms (dates are entered in AD today; BS is shown where available).

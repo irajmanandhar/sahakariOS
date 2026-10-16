@@ -46,14 +46,23 @@ class DatabaseSeeder extends Seeder
             ['email' => 'staff@demo.test'],
             ['name' => 'Demo Staff', 'password' => self::LOCAL_PASSWORD],
         );
-        $coop->users()->syncWithoutDetaching([$staff->id => ['branch_id' => $branch->id]]);
+        // Second person, so "who entered it may not approve it" can be tried locally.
+        $approver = User::firstOrCreate(
+            ['email' => 'approver@demo.test'],
+            ['name' => 'Demo Approver', 'password' => self::LOCAL_PASSWORD],
+        );
+        $coop->users()->syncWithoutDetaching([
+            $staff->id => ['branch_id' => $branch->id],
+            $approver->id => ['branch_id' => $branch->id],
+        ]);
 
         // Fiscal year 2083/84, today's business day (Nepal time) and a demo "Manager"
         // role with every current permission, if not already there.
-        app(TenantContext::class)->runAs($coop->id, $branch->id, function () use ($staff) {
+        app(TenantContext::class)->runAs($coop->id, $branch->id, function () use ($staff, $approver) {
             $manager = Role::firstOrCreate(['key' => 'manager'], ['name' => 'Manager']);
             $manager->syncPermissions(Permission::cases());
             $manager->assignTo($staff);
+            $manager->assignTo($approver);
 
             // Tiny DEMO chart so the ledger can be tried locally. Not a recommended
             // chart of accounts: the real chart is the cooperative's accountant's decision.

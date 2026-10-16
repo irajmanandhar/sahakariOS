@@ -116,6 +116,11 @@ export default function HomePage() {
               Open today&apos;s business day
             </Button>
           )}
+          {can('member.view') && (
+            <Button variant="text" onClick={() => router.push('/members')}>
+              Members
+            </Button>
+          )}
           {can('ledger.view') && (
             <Button variant="text" onClick={() => router.push('/ledger')}>
               Ledger

@@ -10,6 +10,8 @@ export class ApiError extends Error {
     message: string,
     /** Seconds from the Retry-After header (429 responses). */
     readonly retryAfter?: number,
+    /** Laravel validation errors keyed by field path, e.g. "kym.mother_name". */
+    readonly fieldErrors: Record<string, string[]> = {},
   ) {
     super(message);
   }
@@ -32,6 +34,32 @@ export type BusinessDay = {
   status: string;
 };
 
+export type Member = {
+  id: number;
+  member_number: number | null;
+  status: 'applied' | 'active' | 'rejected' | 'exited';
+  full_name: string;
+  full_name_ne: string | null;
+  gender: string;
+  date_of_birth: string;
+  date_of_birth_bs: string | null;
+  phone: string | null;
+  is_pep: boolean;
+  risk_level: 'low' | 'medium' | 'high' | null;
+  next_kyc_review_on: string | null;
+  applied_on: string;
+  days_to_decide: number | null;
+  decided_at: string | null;
+  decision_reason: string | null;
+  documents?: { id: number; type: string; mime_type: string; size_bytes: number; uploaded_at: string }[];
+};
+
+/** Permissions of the current cooperative selection (UI hint only; the API enforces). */
+export async function currentPermissions(): Promise<string[]> {
+  const { data } = await api<{ data: Membership | null }>('/auth/cooperative');
+  return data?.permissions ?? [];
+}
+
 export type Branch = { id: number; code: string; name: string; is_head_office: boolean; status: string };
 
 /** CSRF token Laravel sets in the readable XSRF-TOKEN cookie (not a credential). */
@@ -40,16 +68,17 @@ function xsrfToken(): string | undefined {
   return match ? decodeURIComponent(match[1]) : undefined;
 }
 
-export async function api<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
+export async function api<T>(path: string, options: { method?: string; body?: unknown; form?: FormData } = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json' };
+  // For FormData the browser sets the multipart Content-Type (with boundary) itself.
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
   const token = xsrfToken();
   if (token) headers['X-XSRF-TOKEN'] = token;
 
   const response = await fetch(`/api${path}`, {
-    method: options.method ?? 'GET',
+    method: options.method ?? (options.form ? 'POST' : 'GET'),
     headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    body: options.form ?? (options.body === undefined ? undefined : JSON.stringify(options.body)),
     credentials: 'same-origin',
     cache: 'no-store',
   });
@@ -61,7 +90,7 @@ export async function api<T>(path: string, options: { method?: string; body?: un
   if (!response.ok) {
     const firstFieldError = body?.errors ? (Object.values(body.errors)[0] as string[] | undefined)?.[0] : undefined;
     const retryAfter = Number(response.headers.get('Retry-After')) || undefined;
-    throw new ApiError(response.status, firstFieldError ?? body?.message ?? 'Request failed.', retryAfter);
+    throw new ApiError(response.status, firstFieldError ?? body?.message ?? 'Request failed.', retryAfter, body?.errors ?? {});
   }
 
   return body as T;
