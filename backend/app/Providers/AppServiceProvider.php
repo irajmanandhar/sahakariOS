@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Calendar\BsCalendar;
 use App\Tenancy\TenantContext;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -20,6 +21,9 @@ class AppServiceProvider extends ServiceProvider
     {
         // One tenant context per request / queued job.
         $this->app->scoped(TenantContext::class);
+
+        // Verified Bikram Sambat table, loaded once per process.
+        $this->app->singleton(BsCalendar::class);
     }
 
     /**

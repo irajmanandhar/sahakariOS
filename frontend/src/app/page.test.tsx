@@ -35,10 +35,12 @@ describe('HomePage', () => {
     vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce(json({ data: { id: 1, name: 'Demo Staff', email: 's@x.test' } }))
       .mockResolvedValueOnce(json({ data: membership }))
-      .mockResolvedValueOnce(json({ data: [{ id: 1, code: 'HO', name: 'Head Office', is_head_office: true, status: 'active' }] })));
+      .mockResolvedValueOnce(json({ data: [{ id: 1, code: 'HO', name: 'Head Office', is_head_office: true, status: 'active' }] }))
+      .mockResolvedValueOnce(json({ data: { date: '2026-10-16', date_bs: '2083-06-30', date_bs_text: '30 Asoj 2083', fiscal_year: '2083/84', status: 'open' } })));
     render(<HomePage />);
 
     expect(await screen.findByText('Demo Cooperative')).toBeTruthy();
+    expect(screen.getByText(/Business date: 30 Asoj 2083 BS \(2026-10-16\)/)).toBeTruthy();
     expect(screen.getByText('Head Office (head office)')).toBeTruthy();
     expect(replace).not.toHaveBeenCalled();
   });

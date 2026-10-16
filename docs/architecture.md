@@ -263,7 +263,7 @@ Control: `approval_policies` (operation, threshold, roles), `approval_requests`,
 |---|---|---|
 | 0 | `git init`, monorepo skeleton, Docker compose (MySQL, Redis, api, web), Laravel + Next.js installed, `/api/health`, CI, docs saved | `docker compose up` works; health test + one frontend test pass in CI |
 | 1 | Platform admins, cooperatives, branches, users, roles/permissions, tenant context, audit log | cross-tenant test suite passes |
-| 2 | BS calendar + fiscal years + business day | conversion tests vs verified table |
+| 2 | BS calendar + fiscal years + business day — **done 2026-10-16** (open/close day via HTTP waits for roles) | conversion tests vs verified table |
 | 3 | Accounting engine: chart of accounts, posting service, reversal, immutability triggers, trial balance | invariant + concurrency tests pass |
 | 4 | Members + KYC + documents | AML guidance read & mapped first |
 | 5 | Shares | share register reconciles to GL |

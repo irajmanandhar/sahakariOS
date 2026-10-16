@@ -2,7 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Calendar\BusinessDayService;
+use App\Calendar\FiscalYearService;
+use App\Models\BusinessDay;
 use App\Models\Cooperative;
+use App\Models\FiscalYear;
 use App\Models\PlatformUser;
 use App\Models\User;
 use App\Tenancy\TenantContext;
@@ -12,7 +16,8 @@ use RuntimeException;
 
 /**
  * Synthetic local-development data only: one demo cooperative with a head
- * office, one staff member and one platform administrator. Idempotent.
+ * office, fiscal year 2083/84 and today's business day, one staff member and
+ * one platform administrator. Idempotent.
  * Refuses to run outside local/testing so the shared password never reaches
  * a real environment.
  */
@@ -38,6 +43,18 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Demo Staff', 'password' => self::LOCAL_PASSWORD],
         );
         $coop->users()->syncWithoutDetaching([$staff->id => ['branch_id' => $branch->id]]);
+
+        // Fiscal year 2083/84 and today's business day (Nepal time), if not already there.
+        app(TenantContext::class)->runAs($coop->id, $branch->id, function () {
+            if (! FiscalYear::query()->where('start_bs_year', 2083)->exists()) {
+                app(FiscalYearService::class)->open(2083);
+            }
+            $days = app(BusinessDayService::class);
+            $today = BusinessDayService::today();
+            if ($days->current() === null && ! BusinessDay::query()->where('business_date', '>=', $today)->exists()) {
+                $days->open($today);
+            }
+        });
 
         PlatformUser::firstOrCreate(
             ['email' => 'ops@demo.test'],

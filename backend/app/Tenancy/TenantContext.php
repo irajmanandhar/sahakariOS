@@ -29,6 +29,21 @@ final class TenantContext
         $this->branchId = $branchId;
     }
 
+    /**
+     * Run code for one cooperative outside an HTTP request (seeders, queued
+     * jobs, commands). The caller is responsible for having authorized this.
+     */
+    public function runAs(int $cooperativeId, int $branchId, callable $callback): mixed
+    {
+        $this->set($cooperativeId, $branchId);
+
+        try {
+            return $callback();
+        } finally {
+            $this->clear();
+        }
+    }
+
     public function clear(): void
     {
         $this->cooperativeId = null;

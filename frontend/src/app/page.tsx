@@ -12,9 +12,9 @@ import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { api, type Branch, errorMessage, type Membership, redirectForAuthError, type User } from '@/lib/api';
+import { api, type Branch, type BusinessDay, errorMessage, type Membership, redirectForAuthError, type User } from '@/lib/api';
 
-type Session = { user: User; membership: Membership; branches: Branch[] };
+type Session = { user: User; membership: Membership; branches: Branch[]; businessDay: BusinessDay | null };
 
 /** Staff home. Laravel decides access; this page only follows its answers. */
 export default function HomePage() {
@@ -30,8 +30,11 @@ export default function HomePage() {
         router.replace('/select-cooperative');
         return;
       }
-      const { data: branches } = await api<{ data: Branch[] }>('/branches');
-      setSession({ user, membership, branches });
+      const [{ data: branches }, { data: businessDay }] = await Promise.all([
+        api<{ data: Branch[] }>('/branches'),
+        api<{ data: BusinessDay | null }>('/business-day'),
+      ]);
+      setSession({ user, membership, branches, businessDay });
     })().catch((err) => redirectForAuthError(err, router.replace) || setError(errorMessage(err)));
   }, [router]);
 
@@ -79,6 +82,16 @@ export default function HomePage() {
           </Alert>
         )}
         <Typography variant="subtitle1">Your branch: {session.membership.branch.name}</Typography>
+        {session.businessDay ? (
+          <Typography variant="subtitle1">
+            Business date: {session.businessDay.date_bs_text} BS ({session.businessDay.date}) · Fiscal year{' '}
+            {session.businessDay.fiscal_year}
+          </Typography>
+        ) : (
+          <Alert severity="info" sx={{ mt: 1 }}>
+            No business day is open.
+          </Alert>
+        )}
         <Box sx={{ mt: 3 }}>
           <Typography variant="h6" component="h2">
             Branches

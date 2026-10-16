@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\PlatformSessionController;
 use App\Http\Controllers\Auth\StaffSessionController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\BusinessDayController;
 use App\Http\Controllers\CurrentCooperativeController;
 use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
@@ -37,6 +38,7 @@ Route::middleware('web')->group(function () {
     Route::middleware(['auth:web', 'auth.session', 'account.can-sign-in', 'tenant'])->group(function () {
         Route::get('/branches', [BranchController::class, 'index']);
         Route::get('/branches/{branch}', [BranchController::class, 'show']);
+        Route::get('/business-day', [BusinessDayController::class, 'show']);
     });
 
     Route::prefix('platform/auth')->group(function () {

@@ -179,6 +179,20 @@ marked CONFLICT; this register does not decide which applies.
 | G-06 | Privacy obligations for member personal data | X2 | **UNVERIFIED** |
 | G-07 | Whether NRB directives currently add SACCO rules | Act s.23क, s.151(1क) | **UNVERIFIED** |
 
+## 10a. Calendar and fiscal year (checked 2026-10-16)
+
+| ID | Rule / data | Source | Status |
+|---|---|---|---|
+| CAL-01 | BS month lengths BS 2000–2083 in `backend/resources/calendar/bikram-sambat.php` | Three independent open-source datasets agree on every year (npm `bikram-sambat` 1.8.1, `nepali-datetime` 2.0.0, `nepali-date-converter` 3.4.0) | VERIFIED by consensus (not against the official panchanga for years before 2083) |
+| CAL-02 | BS 2083: 31 BS/AD pairs match | MoHA public-holiday notice 2083, published 2082-11-18, via Pradhan & Associates alert (https://www.pradhanlaw.com/file-upload/files/ListofPubl-1773204479.pdf); Chaitra 30 = 2027-04-13 confirmed by hamropatro.com and bhuone.com.np | VERIFIED |
+| CAL-03 | The alert's phrase "2083/12/31 (April 13, 2027)" | same alert | **CONFLICT** in wording only: every other source gives Chaitra 2083 30 days ending 2027-04-13; treated as loose wording of "year end" |
+| CAL-04 | BS 2084 onward | datasets disagree (2084 Jestha/Asar 31/32 vs 32/31) | **UNVERIFIED — not loaded.** Conversions past 2027-04-13 fail on purpose |
+| CAL-05 | Fiscal year = Shrawan 1 to last day of Asar | Standard Nepal government fiscal year; consistent with NCRA D1/D2 (Shrawan 15 rule) and Std 2/2.1 (Shrawan 1 / Magh 1 counts) | Practice VERIFIED; statute citation **UNVERIFIED** (Act text garbled in extraction) |
+| CAL-06 | FY 2083/84 end date | needs Asar 2084 | **BLOCKED** until the official 2084 calendar (Nepal Panchanga Nirnayak Bikas Samiti) is loaded; stored as NULL |
+
+Business-day rules (one open day per cooperative, forward-only, not in the future in Nepal time,
+inside an open fiscal year) are **PROPOSED system controls**, not regulatory requirements.
+
 ## 11. Next research actions
 
 1. Read A1, A2 and X1 (AML/KYC/TTR) before designing the member/KYC module (Phase 4).
@@ -186,3 +200,4 @@ marked CONFLICT; this register does not decide which applies.
 3. Have a professional resolve every CONFLICT and CHECK SCAN row.
 4. Obtain regulator formats: chart of accounts / financial statements, MIS, CIC, goAML.
 5. Re-check NCRA "co-operative criteria" and "guidance" pages before each module starts.
+6. Obtain the official BS 2084 calendar before 2027-04-13 (last loaded date) and before closing FY 2083/84.

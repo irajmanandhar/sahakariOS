@@ -22,6 +22,14 @@ export type Membership = {
   branch: { id: number; code: string; name: string };
 };
 
+export type BusinessDay = {
+  date: string;
+  date_bs: string;
+  date_bs_text: string;
+  fiscal_year: string;
+  status: string;
+};
+
 export type Branch = { id: number; code: string; name: string; is_head_office: boolean; status: string };
 
 /** CSRF token Laravel sets in the readable XSRF-TOKEN cookie (not a credential). */
