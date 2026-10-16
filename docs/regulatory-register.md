@@ -33,8 +33,11 @@ Regulatory Authority (राष्ट्रिय सहकारी निय�
 | D1 | NCRA directive 1/2081/82 (rescheduling, interest recognition) | 2082-03-22/23 | Read | https://ncra.gov.np/content/13319/ |
 | D2 | NCRA directive to SACCOs 2083/03/32 | 2083-03-32 | Read | https://ncra.gov.np/content/13380/ |
 | D3 | Credit Information Centre membership notice | 2082-08-10 | Read | https://ncra.gov.np/content/13338/ |
-| A1 | AML/CFT Guidance to Cooperatives (amended) | 2083-05-26 | **Not read** (scanned) | https://ncra.gov.np/content/13388/ |
-| A2 | AML/CFT guidance, instructions and procedures 2082 | 2082 | **Not read** | https://ncra.gov.np/content/13333/ , /13334/ , /13335/ |
+| A1 | AML/CFT Guidance to Cooperatives (amended 11 Sep 2026) | 2083-05-26 | All 14 pages read | https://ncra.gov.np/content/13388/ |
+| A2 | AML/CFT **Instructions 2082** for SACCOs (incl. KYM forms Schedule-1/2/3) | Kartik 2082 | All 23 pages read | https://ncra.gov.np/content/13334/ |
+| A3 | Targeted Financial Sanctions Guideline for Cooperatives 2025 (notice 2082/07/30) | 2082-07-30 | Read | https://ncra.gov.np/content/13333/ |
+| A4 | Directive under regulatory standard (2nd amendment): fit-and-proper/beneficial-owner details | 2083-03-08 | Read | https://ncra.gov.np/content/13379/ |
+| A5 | AML inspection & supervision procedure 2082 | 2082 | **Not read** | https://ncra.gov.np/content/13335/ |
 | C1 | NCRA collection of guidelines, procedures, standards | 2083-04-06 | **Not read** | https://ncra.gov.np/content/13383/ |
 | X1 | Asset (Money) Laundering Prevention Act 2064, Rules 2081; FIU-Nepal TTR guideline (July 2025) | — | **Not read** (scanned) | https://www.nrb.org.np/fiu/threshold-transaction-reporting-guidelines-updated-july-2025 |
 | X2 | Individual Privacy Act 2075 | 2075 | **Not read** | https://lawcommission.gov.np/content/12261/12261-the-privacy-act-2075/ |
@@ -193,9 +196,42 @@ marked CONFLICT; this register does not decide which applies.
 Business-day rules (one open day per cooperative, forward-only, not in the future in Nepal time,
 inside an open fiscal year) are **PROPOSED system controls**, not regulatory requirements.
 
+## 10b. AML/CFT and KYC (read 2026-10-16)
+
+| ID | Rule | Source | Status / where in software |
+|---|---|---|---|
+| K-01 | Identify and verify every member; applicant appears in person; no membership or transaction without required documents | A2 §1(1) | VERIFIED — Phase 4 (in-person timestamp, approval blocked without documents) |
+| K-02 | KYM form for natural persons = Schedule-1 (sections क–ञ) | A2 §1(2), Sch-1 | VERIFIED — `App\Members\KymForm` |
+| K-03 | Legal-person members: Schedule-2 | A2 §1(2)(ख) | VERIFIED — **not built yet** |
+| K-04 | Thumbprint of individual (right and left on form); guardian's thumbprint for child savings | A2 §1(4)-(5), Sch-1 ज | VERIFIED — required documents |
+| K-05 | Accepted ID copies: national ID, citizenship, voter ID, passport, driving licence, PAN; recent photo | A2 Sch-1 झ; A1 §IV | VERIFIED — approval requires photo + one ID copy |
+| K-06 | Open accounts on the basis of the National ID number using the national ID electronic records | A2 §1(1)(घ) | VERIFIED — integration **not possible yet** (no access) |
+| K-07 | PEP: identify at onboarding and on change; family/associates; **high risk**; higher-management approval | A2 §3(1)-(3); A1 §IV | VERIFIED — PEP ⇒ high; approval needs `member.decide_high_risk` |
+| K-08 | PEP records kept **10 years** after leaving office | A2 §3(5) | VERIFIED — retention not yet automated |
+| K-09 | Person remains PEP **5 years** after retirement; internal PEP list at least yearly | A1 §IV | VERIFIED (different rule from K-08) — not built |
+| K-10 | Re-verify existing members: high **1 year**, medium **2 years**, low **3 years**; earlier on material change | A2 §4 | VERIFIED — `next_kyc_review_on`, review-due list |
+| K-11 | EMDD (high risk): electronic-channel users, crime-risk, **> Rs 30 lakh/year** savings, shares or loans, unusual transactions, PEPs; also sensitive businesses (money transfer, real estate, precious metals, casino, manpower) | A2 §6(2), §21(5) | VERIFIED — manual risk assessment now; automatic triggers with transactions |
+| K-12 | Source-of-funds disclosure for transactions **≥ Rs 10 lakh** (shares, savings deposits, loan repayments, remittance) | A2 §8; Act s.52क (> Rs 10 lakh) | VERIFIED — **CONFLICT**: "10 lakh or more" (A2) vs "more than 10 lakh" (Act); build for ≥ |
+| K-13 | TTR to FIU within **15 days**: cash deposits **≥ Rs 10 lakh per member per day** (aggregated) | A2 §12; A1 §VI | VERIFIED — **CONFLICT**: A2 also includes cash withdrawals ≥ 10 lakh/day, A1 deposits only; build both |
+| K-14 | TTR exemptions: government bodies, staff loans, cash with banks/FIs/cooperative bank | A2 §12(2) | VERIFIED — with savings module |
+| K-15 | STR/SAR immediately via goAML, incl. attempted transactions; no tipping-off | A2 §13, §18; A1 §VI | VERIFIED — not built |
+| K-16 | Sanctions screening before any transaction and continuously; freeze; notify NCRA within 3 working days (copy FIU) | A2 §2; A3 | VERIFIED — **CONFLICT** on freeze timing: 24 h (A2/A1) vs immediately (A3); build immediately with 24 h alarm. Not built |
+| K-17 | Cash withdrawal limit **NPR 500,000 per transaction** (Nepal Gazette, effective 15 Jan 2026); more only on reasoned application | A1 §IV | VERIFIED via A1 — with savings module |
+| K-18 | Records **≥ 5 years** after relationship ends (also electronic); keep until investigation/litigation closed | A2 §20; A1 §V | VERIFIED — KYM versions/documents are append-only; retention/legal hold not automated |
+| K-19 | Fire-proof storage for documents if assets ≥ Rs 5 crore | A2 §20(2)(ग) | VERIFIED — physical; n/a to software |
+| K-20 | Annual AML risk report to NCRA within 2 months of FY end; Schedule-3 data by end of Shrawan; compliance audit report within 6 months | A2 §7(2)-(3), §21(6) | VERIFIED — reports not built |
+| K-21 | Board reviews AML at least every 6 months; compliance officer details to FIU and NCRA | A2 §17 | VERIFIED — not built |
+| K-22 | Members must report KYM changes within **35 days** | A2 Sch-1 ज | VERIFIED — new KYM version on update |
+| K-23 | Two existing members recommend the applicant | A2 Sch-1 ञ | VERIFIED; **PROPOSED** enforcement only once the cooperative has ≥ 2 active members |
+
+Interpretations to confirm: which KYM fields are mandatory (the form does not say; we require
+the identity, family, occupation, address, purpose, income band and self-declaration fields);
+whether "dual membership" entries on the form are compatible with Act s.32 (we keep both the
+declaration and the list).
+
 ## 11. Next research actions
 
-1. Read A1, A2 and X1 (AML/KYC/TTR) before designing the member/KYC module (Phase 4).
+1. ~~Read A1, A2~~ (done 2026-10-16). Still to read: A5 inspection procedure, X1 FIU TTR/STR guidelines (goAML formats).
 2. Obtain Cooperative Rules 2075 current text (retention, protected-capital distribution, fees).
 3. Have a professional resolve every CONFLICT and CHECK SCAN row.
 4. Obtain regulator formats: chart of accounts / financial statements, MIS, CIC, goAML.

@@ -7,6 +7,7 @@ use App\Calendar\CalendarRuleViolation;
 use App\Calendar\OutOfCalendarRange;
 use App\Http\Middleware\EnsureAccountCanSignIn;
 use App\Http\Middleware\EnsureTenantContext;
+use App\Members\MembershipRuleViolation;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -38,7 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Business-rule refusals carry staff-safe messages.
-        $exceptions->render(fn (CalendarRuleViolation|OutOfCalendarRange|PostingRejected $e) => response()->json(['message' => $e->getMessage()], 422));
+        $exceptions->render(fn (CalendarRuleViolation|OutOfCalendarRange|PostingRejected|MembershipRuleViolation $e) => response()->json(['message' => $e->getMessage()], 422));
 
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),

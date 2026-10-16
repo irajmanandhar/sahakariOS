@@ -15,4 +15,11 @@ enum Permission: string
     case LedgerAccountManage = 'ledger_account.manage';
     case JournalPost = 'journal.post';
     case JournalReverse = 'journal.reverse';
+    case MemberView = 'member.view';
+    case MemberApply = 'member.apply';
+    case MemberDecide = 'member.decide';
+    case MemberDecideHighRisk = 'member.decide_high_risk';
+    case MemberKycView = 'member.kyc_view';
+    case MemberKycUpdate = 'member.kyc_update';
+    case MemberRiskAssess = 'member.risk_assess';
 }

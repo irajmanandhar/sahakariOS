@@ -10,6 +10,7 @@ use App\Http\Controllers\CurrentCooperativeController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\JournalEntryController;
 use App\Http\Controllers\LedgerAccountController;
+use App\Http\Controllers\MemberController;
 use App\Http\Controllers\TrialBalanceController;
 use Illuminate\Support\Facades\Route;
 
@@ -55,6 +56,18 @@ Route::middleware('web')->group(function () {
         Route::get('/journal-entries/{journalEntry}', [JournalEntryController::class, 'show'])->middleware('can:ledger.view');
         Route::post('/journal-entries/{journalEntry}/reverse', [JournalEntryController::class, 'reverse'])->middleware('can:journal.reverse');
         Route::get('/reports/trial-balance', [TrialBalanceController::class, 'show'])->middleware('can:ledger.view');
+
+        // Members
+        Route::get('/members', [MemberController::class, 'index'])->middleware('can:member.view');
+        Route::post('/members', [MemberController::class, 'store'])->middleware('can:member.apply');
+        Route::get('/members/{member}', [MemberController::class, 'show'])->middleware('can:member.view');
+        Route::get('/members/{member}/kyc', [MemberController::class, 'kyc'])->middleware('can:member.kyc_view');
+        Route::put('/members/{member}/kyc', [MemberController::class, 'updateKyc'])->middleware('can:member.kyc_update');
+        Route::post('/members/{member}/risk', [MemberController::class, 'assessRisk'])->middleware('can:member.risk_assess');
+        Route::post('/members/{member}/documents', [MemberController::class, 'uploadDocument'])->middleware('can:member.apply');
+        Route::get('/members/{member}/documents/{document}', [MemberController::class, 'downloadDocument'])->middleware('can:member.kyc_view');
+        Route::post('/members/{member}/approve', [MemberController::class, 'approve'])->middleware('can:member.decide');
+        Route::post('/members/{member}/reject', [MemberController::class, 'reject'])->middleware('can:member.decide');
     });
 
     Route::prefix('platform/auth')->group(function () {
