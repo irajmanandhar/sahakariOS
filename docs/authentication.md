@@ -1,6 +1,6 @@
 # Authentication and Session Security
 
-Status: Phase 1 Step 2, 2026-10-16. Sections are marked **IMPLEMENTED (tested)** or **PLANNED**.
+Status: Phase 1 Steps 2–3, 2026-10-16. Sections are marked **IMPLEMENTED (tested)** or **PLANNED**.
 
 ## 1. Architecture decision
 
@@ -44,9 +44,36 @@ Why:
   membership ends existing sessions on their next request.
 - Signing in proves identity only. It does **not** select or authorize a cooperative.
   `cooperative_id`/`branch_id` from the client are never used for authorization.
-  Tenant context is the next step (PLANNED).
+  Choosing a cooperative is a separate step (§2a).
 - Decision to confirm: staff of a `licence_suspended` cooperative can still sign in
   (to view records). Blocking transactions there is a separate, PLANNED rule.
+
+## 2a. Tenant context — IMPLEMENTED (tested)
+
+1. After login the client lists `GET /api/auth/cooperatives` (only eligible memberships) and
+   chooses one with `PUT /api/auth/cooperative {cooperative_id}`. The server checks the
+   membership, rotates the session ID and stores the cooperative ID **in the session**.
+   "Not yours" and "does not exist" both get the same 403.
+2. Cooperative-scoped routes use the `tenant` middleware. On **every** request it re-checks
+   the stored choice against the user's eligible memberships, then sets `App\Tenancy\TenantContext`
+   (cooperative + home branch) for that request only and clears it afterwards.
+   - no choice yet → 409 `Select a cooperative first.`
+   - membership disabled / cooperative closed since → 403 and the choice is cleared
+   - no eligible membership at all → 401 (signed out by `account.can-sign-in`)
+3. Models with `cooperative_id` use the `BelongsToTenant` trait:
+   - every query is limited to the current cooperative; another tenant's row is a 404;
+   - **fail closed:** querying with no tenant context throws `MissingTenantContext`
+     instead of returning every cooperative's rows;
+   - deliberate cross-tenant reads (seeders, future platform-admin tools) must use
+     `TenantContext::withoutTenantScope()`, which is easy to find in review;
+   - creating a row for a different cooperative than the current one throws.
+4. The tenant middleware runs before route-model binding (middleware priority), so
+   `{branch}` route parameters are always resolved inside the tenant scope.
+5. Request input such as `?cooperative_id=`, `branch_id` or an `X-Cooperative-Id` header is
+   ignored (tested).
+
+First consumer: `GET /api/branches`, `GET /api/branches/{branch}` (read-only).
+PLANNED: queued jobs must carry `cooperative_id` and set the context; platform-admin tenant access.
 
 ## 3. Endpoints — IMPLEMENTED (tested)
 
@@ -58,6 +85,10 @@ Why:
 | POST | `/api/auth/logout` | 204; session invalidated, CSRF token rotated |
 | POST | `/api/auth/forgot-password` | always the same 200 message |
 | POST | `/api/auth/reset-password` | `{token, email, password, password_confirmation}` |
+| GET | `/api/auth/cooperatives` | staff: eligible memberships |
+| GET | `/api/auth/cooperative` | staff: current choice or `null` |
+| PUT | `/api/auth/cooperative` | staff: `{cooperative_id}` → 200 or 403 |
+| GET | `/api/branches`, `/api/branches/{id}` | staff + tenant: current cooperative's branches |
 | POST | `/api/platform/auth/login` | same contract as staff login |
 | GET | `/api/platform/auth/me` | |
 | POST | `/api/platform/auth/logout` | |
@@ -98,10 +129,11 @@ Unauthenticated requests get `401 {"message":"Unauthenticated."}` (never a redir
 
 Frontend: `API_INTERNAL_URL` (server-only, set in `docker-compose.yml` to `http://nginx`).
 
-**Local runtime status:** the development database has not been migrated (by instruction),
-so login through `localhost:3000` currently returns 500 (`sessions` table missing). The proxy
-itself is verified (`/api/health` through `:3000` → 200). All auth behaviour is verified by
-the automated tests against `sahakarios_test`. Migrating the dev DB needs your approval.
+**Local runtime status:** the development database is migrated and seeded with synthetic data
+(`php artisan db:seed`; refuses to run outside local/testing). Local sign-in: staff
+`staff@demo.test`, platform admin `ops@demo.test`, password `local-dev-password` — local only.
+Verified through `localhost:3000` with curl: login, cooperative selection, branches, logout,
+cross-site POST rejected (419).
 
 ## 6. Production requirements — PLANNED, not done
 

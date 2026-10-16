@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Cooperative;
 use App\Models\PlatformUser;
 use App\Models\User;
+use App\Tenancy\TenantContext;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -57,7 +58,8 @@ class TenancySchemaTest extends TestCase
         $user = User::factory()->create();
         $coop->users()->attach($user, ['branch_id' => $branch->id]);
 
-        $this->assertTrue($coop->branches()->sole()->is_head_office);
+        // Schema test, no request: reading tenant-owned rows needs an explicit bypass.
+        $this->assertTrue(app(TenantContext::class)->withoutTenantScope(fn () => $coop->branches()->sole())->is_head_office);
         $membership = $user->cooperatives()->sole();
         $this->assertTrue($membership->is($coop));
         $this->assertSame($branch->id, $membership->pivot->branch_id);

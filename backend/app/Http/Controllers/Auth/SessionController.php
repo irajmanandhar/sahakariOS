@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Http\Middleware\EnsureTenantContext;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -40,6 +41,8 @@ abstract class SessionController
         }
 
         Auth::guard($this->otherGuard())->logoutCurrentDevice();
+        // A new sign-in never inherits a previous user's cooperative selection.
+        $request->session()->forget(EnsureTenantContext::SESSION_KEY);
         // Login already rotated the session ID (fixation protection); rotate the CSRF token too.
         $request->session()->regenerateToken();
 

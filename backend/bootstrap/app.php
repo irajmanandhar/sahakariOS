@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Middleware\EnsureAccountCanSignIn;
+use App\Http\Middleware\EnsureTenantContext;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -16,7 +18,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'account.can-sign-in' => EnsureAccountCanSignIn::class,
+            'tenant' => EnsureTenantContext::class,
         ]);
+
+        // Run eligibility and tenant checks before route-model binding, so
+        // {model} parameters are always resolved inside the tenant scope.
+        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: EnsureAccountCanSignIn::class);
+        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: EnsureTenantContext::class);
 
         // This is an API: there is no Laravel login page to redirect to. Guests
         // (including sessions ended by auth.session) get a 401; the frontend

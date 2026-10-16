@@ -41,8 +41,7 @@ class User extends Authenticatable
 
     /**
      * Checked at login and on every authenticated request. A staff user may
-     * sign in only while they hold at least one active membership at an active
-     * branch of a cooperative that is not closed. A licence-suspended
+     * sign in only while they hold at least one eligible membership (below). A licence-suspended
      * cooperative still allows sign-in (records stay viewable); blocking
      * transactions there is a later, separate rule.
      *
@@ -51,11 +50,20 @@ class User extends Authenticatable
      */
     public function canSignIn(): bool
     {
+        return $this->eligibleCooperatives()->exists();
+    }
+
+    /**
+     * Cooperatives this user may act for right now: active membership, active
+     * home branch, cooperative not closed. Used for sign-in and for selecting
+     * (and re-verifying) the tenant context.
+     */
+    public function eligibleCooperatives(): BelongsToMany
+    {
         return $this->cooperatives()
             ->wherePivot('status', 'active')
             ->whereIn('cooperatives.status', ['active', 'licence_suspended'])
             ->join('branches', 'branches.id', '=', 'cooperative_user.branch_id')
-            ->where('branches.status', 'active')
-            ->exists();
+            ->where('branches.status', 'active');
     }
 }

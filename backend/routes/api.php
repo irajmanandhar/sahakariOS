@@ -3,6 +3,8 @@
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\PlatformSessionController;
 use App\Http\Controllers\Auth\StaffSessionController;
+use App\Http\Controllers\BranchController;
+use App\Http\Controllers\CurrentCooperativeController;
 use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,7 +25,18 @@ Route::middleware('web')->group(function () {
         Route::middleware(['auth:web', 'auth.session', 'account.can-sign-in'])->group(function () {
             Route::get('/me', [StaffSessionController::class, 'show']);
             Route::post('/logout', [StaffSessionController::class, 'destroy']);
+
+            // Tenant selection (server-side session state).
+            Route::get('/cooperatives', [CurrentCooperativeController::class, 'index']);
+            Route::get('/cooperative', [CurrentCooperativeController::class, 'show']);
+            Route::put('/cooperative', [CurrentCooperativeController::class, 'update']);
         });
+    });
+
+    // Cooperative-scoped routes: everything here runs inside a verified tenant context.
+    Route::middleware(['auth:web', 'auth.session', 'account.can-sign-in', 'tenant'])->group(function () {
+        Route::get('/branches', [BranchController::class, 'index']);
+        Route::get('/branches/{branch}', [BranchController::class, 'show']);
     });
 
     Route::prefix('platform/auth')->group(function () {
