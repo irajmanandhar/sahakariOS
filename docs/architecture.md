@@ -128,6 +128,8 @@ Control: `approval_policies` (operation, threshold, roles), `approval_requests`,
 
 ## 6. Tenant isolation and authorization
 
+> Authentication as built (Phase 1 Step 2) is documented in [`authentication.md`](authentication.md).
+
 - Single database, shared schema, `cooperative_id` column. Simplest model that scales to hundreds of
   cooperatives; per-tenant DB can come later for a large customer.
 - **Tenant comes from the authenticated user's server-side session**, never from a request body/header.

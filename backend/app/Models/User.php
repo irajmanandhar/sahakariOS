@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -28,5 +29,33 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /** Cooperatives this staff user works for, with home branch and membership status. */
+    public function cooperatives(): BelongsToMany
+    {
+        return $this->belongsToMany(Cooperative::class)
+            ->withPivot(['branch_id', 'status'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Checked at login and on every authenticated request. A staff user may
+     * sign in only while they hold at least one active membership at an active
+     * branch of a cooperative that is not closed. A licence-suspended
+     * cooperative still allows sign-in (records stay viewable); blocking
+     * transactions there is a later, separate rule.
+     *
+     * Signing in proves identity only. It does not select or authorize a
+     * cooperative; that is the tenant-context step.
+     */
+    public function canSignIn(): bool
+    {
+        return $this->cooperatives()
+            ->wherePivot('status', 'active')
+            ->whereIn('cooperatives.status', ['active', 'licence_suspended'])
+            ->join('branches', 'branches.id', '=', 'cooperative_user.branch_id')
+            ->where('branches.status', 'active')
+            ->exists();
     }
 }

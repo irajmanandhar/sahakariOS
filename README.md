@@ -2,8 +2,10 @@
 
 Cloud core-banking and accounting platform for Nepali savings and credit cooperatives.
 
-**Status: Phase 0 (project skeleton).** No financial features, member data or authentication yet.
-See [`docs/architecture.md`](docs/architecture.md) and [`docs/regulatory-register.md`](docs/regulatory-register.md).
+**Status: Phase 1 in progress.** Tenant schema (cooperatives, branches, staff memberships, platform
+users) and session authentication are in place. No financial features or member data yet.
+See [`docs/architecture.md`](docs/architecture.md), [`docs/regulatory-register.md`](docs/regulatory-register.md)
+and [`docs/authentication.md`](docs/authentication.md) (auth design and required environment variables).
 
 ## Layout
 
