@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Savings\SavingsService;
 use App\Tenancy\TenantContext;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
@@ -103,7 +104,7 @@ class DatabaseSeeder extends Seeder
 
             // DEMO bank account tag for liquidity, capital and bank reconciliation.
             $bank = LedgerAccount::query()->where('code', 'DEMO-1.2')->value('id');
-            \Illuminate\Support\Facades\DB::table('ledger_account_tags')->insertOrIgnore(['cooperative_id' => $coop->id, 'ledger_account_id' => $bank, 'tag' => 'bank_deposit', 'created_at' => now(), 'updated_at' => now()]);
+            DB::table('ledger_account_tags')->insertOrIgnore(['cooperative_id' => $coop->id, 'ledger_account_id' => $bank, 'tag' => 'bank_deposit', 'created_at' => now(), 'updated_at' => now()]);
 
             // DEMO loan product (savings-secured). Placeholder terms for local testing only.
             if (! LoanProduct::query()->where('code', 'DEMO-LS')->exists()) {
