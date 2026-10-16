@@ -68,12 +68,13 @@ function xsrfToken(): string | undefined {
   return match ? decodeURIComponent(match[1]) : undefined;
 }
 
-export async function api<T>(path: string, options: { method?: string; body?: unknown; form?: FormData } = {}): Promise<T> {
+export async function api<T>(path: string, options: { method?: string; body?: unknown; form?: FormData; idempotencyKey?: string } = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json' };
   // For FormData the browser sets the multipart Content-Type (with boundary) itself.
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
   const token = xsrfToken();
   if (token) headers['X-XSRF-TOKEN'] = token;
+  if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey;
 
   const response = await fetch(`/api${path}`, {
     method: options.method ?? (options.form ? 'POST' : 'GET'),

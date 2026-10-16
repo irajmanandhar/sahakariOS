@@ -6,11 +6,14 @@ use App\Http\Controllers\Auth\PlatformSessionController;
 use App\Http\Controllers\Auth\StaffSessionController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\BusinessDayController;
+use App\Http\Controllers\ComplianceController;
 use App\Http\Controllers\CurrentCooperativeController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\JournalEntryController;
 use App\Http\Controllers\LedgerAccountController;
+use App\Http\Controllers\LedgerMappingController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\ShareController;
 use App\Http\Controllers\TrialBalanceController;
 use Illuminate\Support\Facades\Route;
 
@@ -68,6 +71,13 @@ Route::middleware('web')->group(function () {
         Route::get('/members/{member}/documents/{document}', [MemberController::class, 'downloadDocument'])->middleware('can:member.kyc_view');
         Route::post('/members/{member}/approve', [MemberController::class, 'approve'])->middleware('can:member.decide');
         Route::post('/members/{member}/reject', [MemberController::class, 'reject'])->middleware('can:member.decide');
+
+        // Ledger roles, shares, compliance
+        Route::get('/ledger-mappings', [LedgerMappingController::class, 'index'])->middleware('can:ledger.view');
+        Route::put('/ledger-mappings', [LedgerMappingController::class, 'update'])->middleware('can:ledger_account.manage');
+        Route::get('/members/{member}/shares', [ShareController::class, 'index'])->middleware('can:share.view');
+        Route::post('/members/{member}/shares', [ShareController::class, 'purchase'])->middleware('can:share.purchase');
+        Route::get('/reports/threshold-transactions', [ComplianceController::class, 'thresholdTransactions'])->middleware('can:aml.view');
     });
 
     Route::prefix('platform/auth')->group(function () {

@@ -97,3 +97,14 @@ describe('api uploads and field errors', () => {
     expect(error.fieldErrors['kym.mother_name']).toEqual(['The mother name field is required.']);
   });
 });
+
+describe('idempotency', () => {
+  it('sends the Idempotency-Key header when given', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: 1 }), { status: 201 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await api('/members/1/shares', { method: 'POST', body: { units: 1 }, idempotencyKey: 'share-abc12345' });
+
+    expect(fetchMock.mock.calls[0][1].headers['Idempotency-Key']).toBe('share-abc12345');
+  });
+});

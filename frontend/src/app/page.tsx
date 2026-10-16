@@ -122,6 +122,11 @@ export default function HomePage() {
             </Button>
           )}
           {can('ledger.view') && (
+            <Button variant="text" onClick={() => router.push('/settings/ledger')}>
+              Ledger roles
+            </Button>
+          )}
+          {can('ledger.view') && (
             <Button variant="text" onClick={() => router.push('/ledger')}>
               Ledger
             </Button>

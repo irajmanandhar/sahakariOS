@@ -22,4 +22,7 @@ enum Permission: string
     case MemberKycView = 'member.kyc_view';
     case MemberKycUpdate = 'member.kyc_update';
     case MemberRiskAssess = 'member.risk_assess';
+    case ShareView = 'share.view';
+    case SharePurchase = 'share.purchase';
+    case AmlView = 'aml.view';
 }

@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Accounting\LedgerAccountService;
+use App\Accounting\LedgerMappings;
 use App\Authorization\Permission;
 use App\Calendar\BusinessDayService;
 use App\Calendar\FiscalYearService;
@@ -66,13 +67,33 @@ class DatabaseSeeder extends Seeder
 
             // Tiny DEMO chart so the ledger can be tried locally. Not a recommended
             // chart of accounts: the real chart is the cooperative's accountant's decision.
-            if (! LedgerAccount::query()->exists()) {
-                $accounts = app(LedgerAccountService::class);
-                $accounts->create('DEMO-1', 'Assets (demo)', 'asset', false);
-                $accounts->create('DEMO-1.1', 'Cash in hand (demo)', 'asset', true, 'DEMO-1');
-                $accounts->create('DEMO-1.2', 'Bank account (demo)', 'asset', true, 'DEMO-1');
-                $accounts->create('DEMO-2', 'Liabilities (demo)', 'liability', false);
-                $accounts->create('DEMO-2.1', 'Member savings (demo)', 'liability', true, 'DEMO-2');
+            $accounts = app(LedgerAccountService::class);
+            foreach ([
+                ['DEMO-1', 'Assets (demo)', 'asset', null, null],
+                ['DEMO-1.1', 'Cash in hand (demo)', 'asset', 'DEMO-1', 'cash'],
+                ['DEMO-1.2', 'Bank account (demo)', 'asset', 'DEMO-1', null],
+                ['DEMO-1.3', 'Loans to members (demo)', 'asset', 'DEMO-1', null],
+                ['DEMO-1.4', 'Loan loss provision (demo)', 'asset', 'DEMO-1', 'loan_loss_provision'],
+                ['DEMO-2', 'Liabilities (demo)', 'liability', null, null],
+                ['DEMO-2.1', 'Member savings (demo)', 'liability', 'DEMO-2', null],
+                ['DEMO-2.2', 'Term savings (demo)', 'liability', 'DEMO-2', null],
+                ['DEMO-3', 'Equity (demo)', 'equity', null, null],
+                ['DEMO-3.1', 'Share capital (demo)', 'equity', 'DEMO-3', 'share_capital'],
+                ['DEMO-3.2', 'Reserve fund (demo)', 'equity', 'DEMO-3', 'reserve_fund'],
+                ['DEMO-4', 'Income (demo)', 'income', null, null],
+                ['DEMO-4.1', 'Loan interest income (demo)', 'income', 'DEMO-4', 'loan_interest_income'],
+                ['DEMO-4.2', 'Penalty interest income (demo)', 'income', 'DEMO-4', 'loan_penalty_income'],
+                ['DEMO-4.3', 'Loan fee income (demo)', 'income', 'DEMO-4', 'loan_fee_income'],
+                ['DEMO-5', 'Expenses (demo)', 'expense', null, null],
+                ['DEMO-5.1', 'Interest on savings (demo)', 'expense', 'DEMO-5', 'savings_interest_expense'],
+                ['DEMO-5.2', 'Loan loss provision expense (demo)', 'expense', 'DEMO-5', 'loan_loss_provision_expense'],
+            ] as [$code, $name, $type, $parent, $role]) {
+                if (! LedgerAccount::query()->where('code', $code)->exists()) {
+                    $accounts->create($code, $name, $type, $parent !== null, $parent);
+                }
+                if ($role) {
+                    app(LedgerMappings::class)->set($role, $code);
+                }
             }
 
             if (! FiscalYear::query()->where('start_bs_year', 2083)->exists()) {

@@ -16,6 +16,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { MemberStatusChip, RiskChip } from '@/components/StatusChip';
 import { api, currentPermissions, errorMessage, type Member, redirectForAuthError } from '@/lib/api';
+import { newIdempotencyKey } from '@/lib/idempotency';
 
 const DOCUMENT_TYPES: [string, string][] = [
   ['photo', 'Photo'], ['citizenship', 'Citizenship certificate'], ['national_id', 'National ID'], ['voter_id', 'Voter ID'],
@@ -36,6 +37,8 @@ export default function MemberDetail() {
   const [docType, setDocType] = useState('photo');
   const [risk, setRisk] = useState({ level: 'low', reason: '' });
   const [rejectReason, setRejectReason] = useState('');
+  const [shares, setShares] = useState<{ units: number; amount: string; transactions: { id: number; units: number; amount: string; date: string }[] } | null>(null);
+  const [buy, setBuy] = useState({ units: '', source: '', key: newIdempotencyKey('share') });
 
   const fail = useCallback((err: unknown) => redirectForAuthError(err, router.replace) || setError(errorMessage(err)), [router]);
   const load = useCallback(() => {
@@ -43,6 +46,9 @@ export default function MemberDetail() {
       .then(([m, p]) => {
         setMember(m.data);
         setPermissions(p);
+        if (p.includes('share.view')) {
+          api<{ data: typeof shares }>(`/members/${id}/shares`).then((r) => setShares(r.data)).catch(fail);
+        }
       })
       .catch(fail);
   }, [id, fail]);
@@ -149,6 +155,29 @@ export default function MemberDetail() {
               />
             </Button>
             <Typography variant="caption">JPEG, PNG or PDF, max 5 MB. Required: photo, both thumbprints, one ID copy.</Typography>
+          </Box>
+        )}
+      </>)}
+
+      {shares && box('Shares', <>
+        <Typography sx={{ mb: 1 }}>
+          Holding: <strong>{shares.units}</strong> share(s) · Rs {shares.amount} (face value Rs 100, Act s.63)
+        </Typography>
+        <List dense>
+          {shares.transactions.map((t) => (
+            <ListItem key={t.id}><ListItemText primary={`${t.date}: ${t.units} share(s)`} secondary={`Rs ${t.amount}`} /></ListItem>
+          ))}
+        </List>
+        {can('share.purchase') && member.status === 'active' && (
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <TextField size="small" label="Shares to buy (cash)" type="number" value={buy.units} onChange={(e) => setBuy({ ...buy, units: e.target.value })} />
+            <TextField size="small" label="Source of funds (required from Rs 10 lakh)" value={buy.source} onChange={(e) => setBuy({ ...buy, source: e.target.value })} sx={{ flexGrow: 1 }} />
+            <Button variant="outlined" onClick={() => act(async () => {
+              await api(`/members/${id}/shares`, { method: 'POST', body: { units: Number(buy.units), source_of_funds: buy.source || null }, idempotencyKey: buy.key });
+              setBuy({ units: '', source: '', key: newIdempotencyKey('share') });
+            }, 'Shares purchased.')}>
+              Buy shares
+            </Button>
           </Box>
         )}
       </>)}
