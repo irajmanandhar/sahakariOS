@@ -3,7 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Accounting\Money;
+use App\Accounting\PostingRejected;
+use App\Calendar\BusinessDayService;
 use App\Http\Controllers\Concerns\RequiresIdempotencyKey;
+use App\Loans\LoanClassifier;
+use App\Loans\LoanRepaymentService;
 use App\Loans\LoanService;
 use App\Models\Loan;
 use App\Models\LoanProduct;
@@ -119,6 +123,39 @@ class LoanController
         $account = SavingsAccount::query()->findOrFail($v['savings_account_id']);
 
         return response()->json(['data' => $this->present($loans->disburse($loan, $account, $request->user(), $key)->load(['product', 'member']))], 201);
+    }
+
+    public function quote(Loan $loan, LoanRepaymentService $repayments): JsonResponse
+    {
+        return response()->json(['data' => $repayments->quote($loan)]);
+    }
+
+    public function repay(Request $request, Loan $loan, LoanRepaymentService $repayments): JsonResponse
+    {
+        $key = $this->idempotencyKey($request);
+        $v = $request->validate([
+            'amount' => ['required', 'string'],
+            'channel' => ['required', Rule::in(['cash', 'savings'])],
+            'savings_account_id' => ['required_if:channel,savings', 'nullable', 'integer'],
+            'source_of_funds' => ['nullable', 'string', 'max:500'],
+        ]);
+        $from = isset($v['savings_account_id']) ? SavingsAccount::query()->findOrFail($v['savings_account_id']) : null;
+        $row = $repayments->repay($loan, $v['amount'], $v['channel'], $from, $request->user(), $key, $v['source_of_funds'] ?? null);
+
+        return response()->json(['data' => [
+            'transaction_id' => $row['id'], 'amount' => Money::format($row['amount']), 'principal' => Money::format($row['principal']),
+            'interest' => Money::format($row['interest']), 'penalty' => Money::format($row['penalty']),
+            'outstanding_after' => Money::format($row['outstanding_after']),
+        ]], 201);
+    }
+
+    /** Re-classify loans and post the provision change now (also done at BS month-end day close). */
+    public function provision(LoanClassifier $classifier): JsonResponse
+    {
+        $date = app(BusinessDayService::class)->current()?->business_date->format('Y-m-d')
+            ?? throw new PostingRejected('No business day is open.');
+
+        return response()->json(['data' => DB::transaction(fn () => $classifier->run($date))]);
     }
 
     private function present(Loan $l): array

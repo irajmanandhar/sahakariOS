@@ -100,6 +100,9 @@ Route::middleware('web')->group(function () {
         Route::post('/loans/{loan}/approve', [LoanController::class, 'approve'])->middleware('can:loan.decide');
         Route::post('/loans/{loan}/reject', [LoanController::class, 'reject'])->middleware('can:loan.decide');
         Route::post('/loans/{loan}/disburse', [LoanController::class, 'disburse'])->middleware('can:loan.disburse');
+        Route::get('/loans/{loan}/repayment-quote', [LoanController::class, 'quote'])->middleware('can:loan.view');
+        Route::post('/loans/{loan}/repayments', [LoanController::class, 'repay'])->middleware('can:loan.repay');
+        Route::post('/loan-provisioning', [LoanController::class, 'provision'])->middleware('can:loan.provision');
     });
 
     Route::prefix('platform/auth')->group(function () {

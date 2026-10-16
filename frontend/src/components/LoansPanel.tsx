@@ -33,6 +33,8 @@ export default function LoansPanel({ memberId, permissions, active }: { memberId
   const [detail, setDetail] = useState<Detail | null>(null);
   const [into, setInto] = useState('');
   const [reason, setReason] = useState('');
+  const [quote, setQuote] = useState<{ date: string; penalty: string; interest: string; principal_overdue: string; minimum_payment: string; payoff: string } | null>(null);
+  const [pay, setPay] = useState({ amount: '', channel: 'cash', savings: '', key: newIdempotencyKey('repay') });
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   const fetchAll = useCallback(() => Promise.all([
@@ -49,7 +51,11 @@ export default function LoansPanel({ memberId, permissions, active }: { memberId
     fetchAll().then(apply).catch((e) => setMessage({ ok: false, text: errorMessage(e) }));
   }, [fetchAll, apply]);
 
-  const open = async (id: number) => setDetail((await api<{ data: Detail }>(`/loans/${id}`)).data);
+  const open = async (id: number) => {
+    const d = (await api<{ data: Detail }>(`/loans/${id}`)).data;
+    setDetail(d);
+    setQuote(d.status === 'disbursed' ? (await api<{ data: NonNullable<typeof quote> }>(`/loans/${id}/repayment-quote`)).data : null);
+  };
 
   async function run(action: () => Promise<unknown>, ok: string) {
     setMessage(null);
@@ -117,6 +123,33 @@ export default function LoansPanel({ memberId, permissions, active }: { memberId
               <Button variant="contained" disabled={!into} onClick={() => run(() => api(`/loans/${detail.id}/disburse`, { method: 'POST', body: { savings_account_id: Number(into) }, idempotencyKey: newIdempotencyKey('disburse') }), 'Loan disbursed.')}>Disburse</Button>
             </>}
           </Box>
+          {quote && (
+            <Box sx={{ my: 2 }}>
+              <Typography variant="body2">
+                Due today ({quote.date}): penalty Rs {quote.penalty} · interest Rs {quote.interest} · overdue principal Rs {quote.principal_overdue} · payoff Rs {quote.payoff}
+              </Typography>
+              {can('loan.repay') && (
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1 }}>
+                  <TextField size="small" label={`Amount (min Rs ${quote.minimum_payment})`} value={pay.amount} onChange={(e) => setPay({ ...pay, amount: e.target.value })} />
+                  <TextField select size="small" label="From" value={pay.channel} onChange={(e) => setPay({ ...pay, channel: e.target.value })} sx={{ minWidth: 140 }}>
+                    <MenuItem value="cash">Cash</MenuItem>
+                    <MenuItem value="savings">Savings account</MenuItem>
+                  </TextField>
+                  {pay.channel === 'savings' && (
+                    <TextField select size="small" label="Savings account" value={pay.savings} onChange={(e) => setPay({ ...pay, savings: e.target.value })} sx={{ minWidth: 200 }}>
+                      {savings.map((s) => <MenuItem key={s.id} value={String(s.id)}>{s.account_number} · {s.product.name}</MenuItem>)}
+                    </TextField>
+                  )}
+                  <Button variant="contained" onClick={() => run(async () => {
+                    await api(`/loans/${detail.id}/repayments`, { method: 'POST', idempotencyKey: pay.key, body: {
+                      amount: pay.amount, channel: pay.channel, savings_account_id: pay.channel === 'savings' ? Number(pay.savings) : null,
+                    } });
+                    setPay({ amount: '', channel: 'cash', savings: '', key: newIdempotencyKey('repay') });
+                  }, 'Repayment posted.')}>Repay</Button>
+                </Box>
+              )}
+            </Box>
+          )}
           {detail.schedule.length > 0 && (
             <Table size="small">
               <TableHead><TableRow><TableCell>#</TableCell><TableCell>Due</TableCell><TableCell align="right">Principal</TableCell><TableCell align="right">Interest (est.)</TableCell><TableCell align="right">Paid</TableCell></TableRow></TableHead>

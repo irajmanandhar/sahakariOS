@@ -3,6 +3,7 @@
 namespace App\Calendar;
 
 use App\Audit\AuditLogger;
+use App\Loans\LoanClassifier;
 use App\Models\BusinessDay;
 use App\Models\Cooperative;
 use App\Models\FiscalYear;
@@ -21,7 +22,8 @@ use Illuminate\Support\Facades\DB;
  * - a new day must be later than every previous day and not in the future
  *   (Nepal time);
  * - the day must fall inside an open fiscal year and the verified calendar.
- * Closing a day runs end-of-day processing first (savings interest).
+ * Closing a day runs end-of-day processing first (savings interest, loan
+ * classification, and provisioning at BS month ends).
  */
 class BusinessDayService
 {
@@ -84,7 +86,11 @@ class BusinessDayService
 
             // End-of-day processing runs while the day is still open, so its postings
             // land on this business date; it commits or rolls back with the close.
-            app(SavingsInterestService::class)->runForDate($day->business_date->format('Y-m-d'));
+            $date = $day->business_date->format('Y-m-d');
+            app(SavingsInterestService::class)->runForDate($date);
+            // Loans re-classified daily; provision posted at each BS month end (PROPOSED frequency).
+            $bs = $this->calendar->toBs($date);
+            app(LoanClassifier::class)->run($date, $bs->day === $this->calendar->daysInMonth($bs->year, $bs->month));
 
             $day->forceFill(['status' => 'closed', 'closed_by' => $by?->id, 'closed_at' => now()])->save();
             $this->audit->record('business_day.closed', $day, ['business_date' => $day->business_date->format('Y-m-d')], $by);
