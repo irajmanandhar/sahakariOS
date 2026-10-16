@@ -13,7 +13,9 @@ use App\Models\FiscalYear;
 use App\Models\LedgerAccount;
 use App\Models\PlatformUser;
 use App\Models\Role;
+use App\Models\SavingsProduct;
 use App\Models\User;
+use App\Savings\SavingsService;
 use App\Tenancy\TenantContext;
 use Illuminate\Database\Seeder;
 use RuntimeException;
@@ -101,8 +103,8 @@ class DatabaseSeeder extends Seeder
                 ['DEMO-GEN', 'General savings (demo)', 'general', null, 'DEMO-2.1'],
                 ['DEMO-T12', 'Term savings 12 months (demo)', 'term', 12, 'DEMO-2.2'],
             ] as [$code, $name, $type, $term, $account]) {
-                if (! \App\Models\SavingsProduct::query()->where('code', $code)->exists()) {
-                    app(\App\Savings\SavingsService::class)->createProduct(['code' => $code, 'name' => $name, 'type' => $type,
+                if (! SavingsProduct::query()->where('code', $code)->exists()) {
+                    app(SavingsService::class)->createProduct(['code' => $code, 'name' => $name, 'type' => $type,
                         'interest_rate' => '1.000000', 'interest_posting' => 'quarterly', 'term_months' => $term, 'ledger_account_code' => $account]);
                 }
             }
