@@ -115,6 +115,27 @@ Unauthenticated requests get `401 {"message":"Unauthenticated."}` (never a redir
 - **Password policy:** minimum 12 characters on reset (PROPOSED value — confirm with customer).
   Hashing: Laravel default bcrypt.
 
+## 4a. Frontend screens — IMPLEMENTED (tested)
+
+| Route | Behaviour |
+|---|---|
+| `/login` | Staff sign-in. Shows the API's generic error or "Too many attempts. Try again in N seconds." After sign-in, a single membership is selected automatically; otherwise → `/select-cooperative`. |
+| `/select-cooperative` | Lists eligible cooperatives; choosing one calls `PUT /api/auth/cooperative`. |
+| `/` | Staff home: current cooperative, home branch, branch list, Switch cooperative, Sign out. |
+| `/status` | API health check (unauthenticated). |
+
+- Pages are client components calling `/api/*` through the same-origin proxy (`src/lib/api.ts`).
+  Laravel decides access; pages only follow its answers (401 → `/login`; 409/403 → `/select-cooperative`).
+- The session cookie is never visible to JavaScript (verified in headless Chrome: `document.cookie`
+  contains only `XSRF-TOKEN`). The client also sends `X-XSRF-TOKEN` for browsers without `Sec-Fetch-Site`.
+- Platform-admin screens are not built.
+
+Browser check (headless Chrome, synthetic seed account), production build and dev server:
+signed-out `/` → `/login`; wrong password → generic error; sign-in → home with cooperative and
+branches; switch cooperative; sign out → `/login`; `/` afterwards → `/login`.
+Dev-mode note: the first visit to a not-yet-compiled route can make the dev server cancel in-flight
+requests ("Could not reach the server"); reload once. Not seen with the production build.
+
 ## 5. Local environment variables (`backend/.env`, values are local-only)
 
 | Variable | Local value | Purpose |
@@ -151,4 +172,4 @@ cross-site POST rejected (419).
 7. Platform administrators: MFA, provisioning command and their own password reset — not built.
 8. Distributed password guessing (many IPs, one account) is only limited per IP today;
    consider a per-account limit or alerting once real traffic patterns are known.
-9. Frontend login/logout screens are not built yet.
+9. Frontend: no password-reset page yet (`/reset-password`), no idle-timeout warning.

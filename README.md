@@ -43,6 +43,14 @@ docker compose ps                             # all services should show (health
 curl http://localhost:8080/api/health         # {"status":"ok","checks":{"database":"ok","redis":"ok"}}
 ```
 
+## Sign in locally
+
+```sh
+docker compose exec api php artisan migrate      # local dev database only
+docker compose exec api php artisan db:seed      # synthetic demo data; refuses non-local environments
+```
+Open http://localhost:3000 and sign in as `staff@demo.test` / `local-dev-password` (local only).
+
 ## Tests
 
 ```sh
