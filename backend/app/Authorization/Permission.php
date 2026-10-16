@@ -38,4 +38,5 @@ enum Permission: string
     case LoanDisburse = 'loan.disburse';
     case LoanRepay = 'loan.repay';
     case LoanProvision = 'loan.provision';
+    case ReportView = 'report.view';
 }

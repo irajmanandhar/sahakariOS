@@ -14,6 +14,7 @@ use App\Http\Controllers\LedgerAccountController;
 use App\Http\Controllers\LedgerMappingController;
 use App\Http\Controllers\LoanController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SavingsController;
 use App\Http\Controllers\ShareController;
 use App\Http\Controllers\TrialBalanceController;
@@ -103,6 +104,12 @@ Route::middleware('web')->group(function () {
         Route::get('/loans/{loan}/repayment-quote', [LoanController::class, 'quote'])->middleware('can:loan.view');
         Route::post('/loans/{loan}/repayments', [LoanController::class, 'repay'])->middleware('can:loan.repay');
         Route::post('/loan-provisioning', [LoanController::class, 'provision'])->middleware('can:loan.provision');
+
+        // Reports
+        Route::get('/reports', [ReportController::class, 'index'])->middleware('can:report.view');
+        Route::get('/reports/statements/{code}', [ReportController::class, 'show'])->middleware('can:report.view');
+        Route::get('/ledger-account-tags', [ReportController::class, 'tags'])->middleware('can:ledger.view');
+        Route::put('/ledger-account-tags', [ReportController::class, 'setTags'])->middleware('can:ledger_account.manage');
     });
 
     Route::prefix('platform/auth')->group(function () {

@@ -136,6 +136,11 @@ export default function HomePage() {
               Ledger roles
             </Button>
           )}
+          {can('report.view') && (
+            <Button variant="text" onClick={() => router.push('/reports')}>
+              Reports
+            </Button>
+          )}
           {can('ledger.view') && (
             <Button variant="text" onClick={() => router.push('/ledger')}>
               Ledger
