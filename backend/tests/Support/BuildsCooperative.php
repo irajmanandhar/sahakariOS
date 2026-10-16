@@ -105,8 +105,19 @@ trait BuildsCooperative
             'declares_resides_in_working_area' => true,
             'declares_no_other_same_type_membership' => true,
             'applied_on' => '2026-01-01',
+            'decided_at' => '2026-01-01 10:00:00',
             'risk_level' => 'low',
         ]));
+    }
+
+    /** A second staff user (for maker-checker) with every permission. */
+    protected function secondUser(): User
+    {
+        $other = User::factory()->create(['email' => 'approver@example.test', 'password' => self::PASSWORD]);
+        $this->branch->cooperative->users()->attach($other, ['branch_id' => $this->branch->id]);
+        $this->inCoop(fn () => Role::query()->where('key', 'all')->firstOrFail()->assignTo($other));
+
+        return $other;
     }
 
     protected function balanceOf(string $code): string

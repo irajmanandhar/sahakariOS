@@ -14,6 +14,7 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { useParams, useRouter } from 'next/navigation';
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
+import LoansPanel from '@/components/LoansPanel';
 import SavingsPanel from '@/components/SavingsPanel';
 import { MemberStatusChip, RiskChip } from '@/components/StatusChip';
 import { api, currentPermissions, errorMessage, type Member, redirectForAuthError } from '@/lib/api';
@@ -184,6 +185,7 @@ export default function MemberDetail() {
       </>)}
 
       {can('savings.view') && <SavingsPanel memberId={member.id} permissions={permissions} active={member.status === 'active'} />}
+      {can('loan.view') && <LoansPanel memberId={member.id} permissions={permissions} active={member.status === 'active'} />}
 
       {can('member.risk_assess') && ['applied', 'active'].includes(member.status) && box('AML/CFT risk', (
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>

@@ -12,6 +12,7 @@ use App\Http\Controllers\HealthController;
 use App\Http\Controllers\JournalEntryController;
 use App\Http\Controllers\LedgerAccountController;
 use App\Http\Controllers\LedgerMappingController;
+use App\Http\Controllers\LoanController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\SavingsController;
 use App\Http\Controllers\ShareController;
@@ -88,6 +89,17 @@ Route::middleware('web')->group(function () {
         Route::get('/savings-accounts/{savingsAccount}', [SavingsController::class, 'statement'])->middleware('can:savings.view');
         Route::post('/savings-accounts/{savingsAccount}/deposits', [SavingsController::class, 'deposit'])->middleware('can:savings.deposit');
         Route::post('/savings-accounts/{savingsAccount}/withdrawals', [SavingsController::class, 'withdraw'])->middleware('can:savings.withdraw');
+
+        // Loans
+        Route::get('/loan-products', [LoanController::class, 'products'])->middleware('can:loan.view');
+        Route::post('/loan-products', [LoanController::class, 'createProduct'])->middleware('can:loan.product_manage');
+        Route::get('/loans', [LoanController::class, 'index'])->middleware('can:loan.view');
+        Route::get('/members/{member}/loans', [LoanController::class, 'memberLoans'])->middleware('can:loan.view');
+        Route::post('/members/{member}/loans', [LoanController::class, 'apply'])->middleware('can:loan.apply');
+        Route::get('/loans/{loan}', [LoanController::class, 'show'])->middleware('can:loan.view');
+        Route::post('/loans/{loan}/approve', [LoanController::class, 'approve'])->middleware('can:loan.decide');
+        Route::post('/loans/{loan}/reject', [LoanController::class, 'reject'])->middleware('can:loan.decide');
+        Route::post('/loans/{loan}/disburse', [LoanController::class, 'disburse'])->middleware('can:loan.disburse');
     });
 
     Route::prefix('platform/auth')->group(function () {

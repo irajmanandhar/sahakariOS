@@ -7,10 +7,12 @@ use App\Accounting\LedgerMappings;
 use App\Authorization\Permission;
 use App\Calendar\BusinessDayService;
 use App\Calendar\FiscalYearService;
+use App\Loans\LoanService;
 use App\Models\BusinessDay;
 use App\Models\Cooperative;
 use App\Models\FiscalYear;
 use App\Models\LedgerAccount;
+use App\Models\LoanProduct;
 use App\Models\PlatformUser;
 use App\Models\Role;
 use App\Models\SavingsProduct;
@@ -96,6 +98,14 @@ class DatabaseSeeder extends Seeder
                 if ($role) {
                     app(LedgerMappings::class)->set($role, $code);
                 }
+            }
+
+            // DEMO loan product (savings-secured). Placeholder terms for local testing only.
+            if (! LoanProduct::query()->where('code', 'DEMO-LS')->exists()) {
+                app(LoanService::class)->createProduct(['code' => 'DEMO-LS', 'name' => 'Loan against savings (demo)',
+                    'collateral_type' => 'savings', 'interest_rate' => '1.000000', 'penalty_percent' => '0', 'service_fee_percent' => '0',
+                    'repayment_frequency' => 'monthly', 'schedule_method' => 'equal_principal', 'max_term_months' => 24,
+                    'max_amount' => '500000.00', 'ledger_account_code' => 'DEMO-1.3']);
             }
 
             // DEMO savings products. Rates are placeholders for local testing only, not advice.

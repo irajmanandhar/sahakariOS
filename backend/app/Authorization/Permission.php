@@ -31,4 +31,10 @@ enum Permission: string
     case SavingsDeposit = 'savings.deposit';
     case SavingsWithdraw = 'savings.withdraw';
     case SavingsLargeCashWithdrawal = 'savings.large_cash_withdrawal';
+    case LoanView = 'loan.view';
+    case LoanProductManage = 'loan.product_manage';
+    case LoanApply = 'loan.apply';
+    case LoanDecide = 'loan.decide';
+    case LoanDisburse = 'loan.disburse';
+    case LoanRepay = 'loan.repay';
 }
