@@ -7,6 +7,7 @@ use App\Models\BusinessDay;
 use App\Models\Cooperative;
 use App\Models\FiscalYear;
 use App\Models\User;
+use App\Savings\SavingsInterestService;
 use App\Tenancy\TenantContext;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -20,6 +21,7 @@ use Illuminate\Support\Facades\DB;
  * - a new day must be later than every previous day and not in the future
  *   (Nepal time);
  * - the day must fall inside an open fiscal year and the verified calendar.
+ * Closing a day runs end-of-day processing first (savings interest).
  */
 class BusinessDayService
 {
@@ -79,6 +81,11 @@ class BusinessDayService
             $this->lockCooperative();
 
             $day = $this->current() ?? throw new CalendarRuleViolation('There is no open business day.');
+
+            // End-of-day processing runs while the day is still open, so its postings
+            // land on this business date; it commits or rolls back with the close.
+            app(SavingsInterestService::class)->runForDate($day->business_date->format('Y-m-d'));
+
             $day->forceFill(['status' => 'closed', 'closed_by' => $by?->id, 'closed_at' => now()])->save();
             $this->audit->record('business_day.closed', $day, ['business_date' => $day->business_date->format('Y-m-d')], $by);
 

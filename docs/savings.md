@@ -45,5 +45,18 @@ Every cash amount in or out is recorded per member and business date; the thresh
 (`GET /api/reports/threshold-transactions`, permission `aml.view`) lists members with Rs 10 lakh
 or more cash in, or out, on one day, with the 15-day report-by date.
 
+## Savings interest — IMPLEMENTED (tested), all treatments PROPOSED
+Runs at **day close** (`POST /api/business-day/close`) inside the same transaction:
+- Daily accrual: balance × annual rate ÷ 365 per calendar day, 6 decimals, logged in
+  `savings_interest_accruals` (append-only). Days without a business day accrue at the balance
+  carried into the next business day; the closing day uses its closing balance.
+- Posting dates (BS): monthly = month end; quarterly = end of Asoj, Poush, Chaitra, Asar;
+  half-yearly = Poush, Asar; yearly = Asar; at maturity. A posting date inside a gap of
+  non-business days is still posted at the next close.
+- Posting: rounded half-up to paisa, remainder carried forward; Dr savings interest expense /
+  Cr product account; idempotent per account and period (a retried close posts nothing twice).
+- Interest is expensed when posted, not accrued in the general ledger daily — accountant to
+  confirm. **No tax deducted at source (TDS)** — needs tax advice before production.
+
 PLANNED: transfers, account closure, premature term withdrawal, freezing (sanctions), regular
 savings ≥ 25% ratio report, teller tills.
