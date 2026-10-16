@@ -2,12 +2,14 @@
 
 namespace Database\Seeders;
 
+use App\Accounting\LedgerAccountService;
 use App\Authorization\Permission;
 use App\Calendar\BusinessDayService;
 use App\Calendar\FiscalYearService;
 use App\Models\BusinessDay;
 use App\Models\Cooperative;
 use App\Models\FiscalYear;
+use App\Models\LedgerAccount;
 use App\Models\PlatformUser;
 use App\Models\Role;
 use App\Models\User;
@@ -52,6 +54,17 @@ class DatabaseSeeder extends Seeder
             $manager = Role::firstOrCreate(['key' => 'manager'], ['name' => 'Manager']);
             $manager->syncPermissions(Permission::cases());
             $manager->assignTo($staff);
+
+            // Tiny DEMO chart so the ledger can be tried locally. Not a recommended
+            // chart of accounts: the real chart is the cooperative's accountant's decision.
+            if (! LedgerAccount::query()->exists()) {
+                $accounts = app(LedgerAccountService::class);
+                $accounts->create('DEMO-1', 'Assets (demo)', 'asset', false);
+                $accounts->create('DEMO-1.1', 'Cash in hand (demo)', 'asset', true, 'DEMO-1');
+                $accounts->create('DEMO-1.2', 'Bank account (demo)', 'asset', true, 'DEMO-1');
+                $accounts->create('DEMO-2', 'Liabilities (demo)', 'liability', false);
+                $accounts->create('DEMO-2.1', 'Member savings (demo)', 'liability', true, 'DEMO-2');
+            }
 
             if (! FiscalYear::query()->where('start_bs_year', 2083)->exists()) {
                 app(FiscalYearService::class)->open(2083);

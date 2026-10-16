@@ -153,6 +153,8 @@ Control: `approval_policies` (operation, threshold, roles), `approval_requests`,
 
 ## 7. Accounting engine design
 
+> As built (Phase 3): [`accounting.md`](accounting.md). The text below is the original design.
+
 > **PROPOSED — every accounting treatment, rounding rule, day-count and allocation order in
 > sections 7–9 requires validation by a qualified cooperative accountant before go-live.**
 > Nothing here is a regulatory requirement unless it cites the regulatory register.
@@ -264,7 +266,7 @@ Control: `approval_policies` (operation, threshold, roles), `approval_requests`,
 | 0 | `git init`, monorepo skeleton, Docker compose (MySQL, Redis, api, web), Laravel + Next.js installed, `/api/health`, CI, docs saved | `docker compose up` works; health test + one frontend test pass in CI |
 | 1 | Platform admins, cooperatives, branches, users, roles/permissions, tenant context, audit log — **done 2026-10-16** (role admin UI, maker-checker pending) | cross-tenant test suite passes |
 | 2 | BS calendar + fiscal years + business day — **done 2026-10-16** (open/close day via HTTP waits for roles) | conversion tests vs verified table |
-| 3 | Accounting engine: chart of accounts, posting service, reversal, immutability triggers, trial balance | invariant + concurrency tests pass |
+| 3 | Accounting engine: chart of accounts, posting service, reversal, immutability triggers, trial balance — **done 2026-10-16**, see [`accounting.md`](accounting.md) | invariant + concurrency tests pass |
 | 4 | Members + KYC + documents | AML guidance read & mapped first |
 | 5 | Shares | share register reconciles to GL |
 | 6 | Savings products/accounts, teller sessions, deposits/withdrawals, approvals | E2E teller flow; overdraw race test |

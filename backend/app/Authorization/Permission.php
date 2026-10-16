@@ -11,4 +11,8 @@ enum Permission: string
     case BusinessDayOpen = 'business_day.open';
     case BusinessDayClose = 'business_day.close';
     case AuditLogView = 'audit_log.view';
+    case LedgerView = 'ledger.view';
+    case LedgerAccountManage = 'ledger_account.manage';
+    case JournalPost = 'journal.post';
+    case JournalReverse = 'journal.reverse';
 }

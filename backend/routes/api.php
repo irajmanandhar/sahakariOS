@@ -8,6 +8,9 @@ use App\Http\Controllers\BranchController;
 use App\Http\Controllers\BusinessDayController;
 use App\Http\Controllers\CurrentCooperativeController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\JournalEntryController;
+use App\Http\Controllers\LedgerAccountController;
+use App\Http\Controllers\TrialBalanceController;
 use Illuminate\Support\Facades\Route;
 
 // Stateless: no session, no cookies.
@@ -43,6 +46,15 @@ Route::middleware('web')->group(function () {
         Route::post('/business-day/open', [BusinessDayController::class, 'open'])->middleware('can:business_day.open');
         Route::post('/business-day/close', [BusinessDayController::class, 'close'])->middleware('can:business_day.close');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->middleware('can:audit_log.view');
+
+        // General ledger
+        Route::get('/ledger-accounts', [LedgerAccountController::class, 'index'])->middleware('can:ledger.view');
+        Route::post('/ledger-accounts', [LedgerAccountController::class, 'store'])->middleware('can:ledger_account.manage');
+        Route::get('/journal-entries', [JournalEntryController::class, 'index'])->middleware('can:ledger.view');
+        Route::post('/journal-entries', [JournalEntryController::class, 'store'])->middleware('can:journal.post');
+        Route::get('/journal-entries/{journalEntry}', [JournalEntryController::class, 'show'])->middleware('can:ledger.view');
+        Route::post('/journal-entries/{journalEntry}/reverse', [JournalEntryController::class, 'reverse'])->middleware('can:journal.reverse');
+        Route::get('/reports/trial-balance', [TrialBalanceController::class, 'show'])->middleware('can:ledger.view');
     });
 
     Route::prefix('platform/auth')->group(function () {

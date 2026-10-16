@@ -116,6 +116,11 @@ export default function HomePage() {
               Open today&apos;s business day
             </Button>
           )}
+          {can('ledger.view') && (
+            <Button variant="text" onClick={() => router.push('/ledger')}>
+              Ledger
+            </Button>
+          )}
           {session.businessDay && can('business_day.close') && (
             <Button variant="outlined" onClick={() => changeBusinessDay('close')}>
               Close business day

@@ -101,8 +101,9 @@ export function redirectForAuthError(error: unknown, replace: (path: string) => 
     replace('/login');
     return true;
   }
-  // 409: no cooperative chosen yet; 403: the chosen one is no longer accessible.
-  if (error.status === 409 || error.status === 403) {
+  // 409: no cooperative chosen yet. A 403 is shown as a message instead: it can mean
+  // "your role does not allow this" as well as "no longer a member here".
+  if (error.status === 409) {
     replace('/select-cooperative');
     return true;
   }

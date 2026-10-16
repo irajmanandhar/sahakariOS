@@ -1,5 +1,7 @@
 <?php
 
+use App\Accounting\PostingRejected;
+use App\Accounting\VerifyLedger;
 use App\Audit\VerifyAuditLog;
 use App\Calendar\CalendarRuleViolation;
 use App\Calendar\OutOfCalendarRange;
@@ -36,11 +38,11 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Business-rule refusals carry staff-safe messages.
-        $exceptions->render(fn (CalendarRuleViolation|OutOfCalendarRange $e) => response()->json(['message' => $e->getMessage()], 422));
+        $exceptions->render(fn (CalendarRuleViolation|OutOfCalendarRange|PostingRejected $e) => response()->json(['message' => $e->getMessage()], 422));
 
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
     })
-    ->withCommands([VerifyAuditLog::class])
+    ->withCommands([VerifyAuditLog::class, VerifyLedger::class])
     ->create();
