@@ -121,6 +121,11 @@ export default function HomePage() {
               Members
             </Button>
           )}
+          {can('savings.view') && (
+            <Button variant="text" onClick={() => router.push('/settings/savings-products')}>
+              Savings products
+            </Button>
+          )}
           {can('ledger.view') && (
             <Button variant="text" onClick={() => router.push('/settings/ledger')}>
               Ledger roles

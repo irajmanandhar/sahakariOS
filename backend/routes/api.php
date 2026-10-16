@@ -13,6 +13,7 @@ use App\Http\Controllers\JournalEntryController;
 use App\Http\Controllers\LedgerAccountController;
 use App\Http\Controllers\LedgerMappingController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\SavingsController;
 use App\Http\Controllers\ShareController;
 use App\Http\Controllers\TrialBalanceController;
 use Illuminate\Support\Facades\Route;
@@ -78,6 +79,15 @@ Route::middleware('web')->group(function () {
         Route::get('/members/{member}/shares', [ShareController::class, 'index'])->middleware('can:share.view');
         Route::post('/members/{member}/shares', [ShareController::class, 'purchase'])->middleware('can:share.purchase');
         Route::get('/reports/threshold-transactions', [ComplianceController::class, 'thresholdTransactions'])->middleware('can:aml.view');
+
+        // Savings
+        Route::get('/savings-products', [SavingsController::class, 'products'])->middleware('can:savings.view');
+        Route::post('/savings-products', [SavingsController::class, 'createProduct'])->middleware('can:savings.product_manage');
+        Route::get('/members/{member}/savings-accounts', [SavingsController::class, 'memberAccounts'])->middleware('can:savings.view');
+        Route::post('/members/{member}/savings-accounts', [SavingsController::class, 'open'])->middleware('can:savings.open');
+        Route::get('/savings-accounts/{savingsAccount}', [SavingsController::class, 'statement'])->middleware('can:savings.view');
+        Route::post('/savings-accounts/{savingsAccount}/deposits', [SavingsController::class, 'deposit'])->middleware('can:savings.deposit');
+        Route::post('/savings-accounts/{savingsAccount}/withdrawals', [SavingsController::class, 'withdraw'])->middleware('can:savings.withdraw');
     });
 
     Route::prefix('platform/auth')->group(function () {

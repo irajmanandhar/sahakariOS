@@ -96,6 +96,17 @@ class DatabaseSeeder extends Seeder
                 }
             }
 
+            // DEMO savings products. Rates are placeholders for local testing only, not advice.
+            foreach ([
+                ['DEMO-GEN', 'General savings (demo)', 'general', null, 'DEMO-2.1'],
+                ['DEMO-T12', 'Term savings 12 months (demo)', 'term', 12, 'DEMO-2.2'],
+            ] as [$code, $name, $type, $term, $account]) {
+                if (! \App\Models\SavingsProduct::query()->where('code', $code)->exists()) {
+                    app(\App\Savings\SavingsService::class)->createProduct(['code' => $code, 'name' => $name, 'type' => $type,
+                        'interest_rate' => '1.000000', 'interest_posting' => 'quarterly', 'term_months' => $term, 'ledger_account_code' => $account]);
+                }
+            }
+
             if (! FiscalYear::query()->where('start_bs_year', 2083)->exists()) {
                 app(FiscalYearService::class)->open(2083);
             }

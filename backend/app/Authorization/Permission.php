@@ -25,4 +25,10 @@ enum Permission: string
     case ShareView = 'share.view';
     case SharePurchase = 'share.purchase';
     case AmlView = 'aml.view';
+    case SavingsView = 'savings.view';
+    case SavingsProductManage = 'savings.product_manage';
+    case SavingsOpen = 'savings.open';
+    case SavingsDeposit = 'savings.deposit';
+    case SavingsWithdraw = 'savings.withdraw';
+    case SavingsLargeCashWithdrawal = 'savings.large_cash_withdrawal';
 }

@@ -35,6 +35,10 @@ final class TenantContext
      */
     public function runAs(int $cooperativeId, int $branchId, callable $callback): mixed
     {
+        // Re-entrant for the same tenant; switching tenant mid-run is still refused by set().
+        if ($this->cooperativeId === $cooperativeId && $this->branchId === $branchId) {
+            return $callback();
+        }
         $this->set($cooperativeId, $branchId);
 
         try {

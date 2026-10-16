@@ -257,6 +257,18 @@ class TenantContextTest extends TestCase
         $this->coopB->branches()->create(['code' => 'B-9', 'name' => 'Sneaky']);
     }
 
+    public function test_run_as_is_reentrant_only_for_the_same_tenant(): void
+    {
+        $tenant = app(TenantContext::class);
+
+        $inner = $tenant->runAs($this->coopA->id, $this->branchA->id, fn () => $tenant->runAs($this->coopA->id, $this->branchA->id, fn () => $tenant->cooperativeId()));
+        $this->assertSame($this->coopA->id, $inner);
+        $this->assertFalse($tenant->has());
+
+        $this->expectException(LogicException::class);
+        $tenant->runAs($this->coopA->id, $this->branchA->id, fn () => $tenant->runAs($this->coopB->id, $this->branchB->id, fn () => null));
+    }
+
     public function test_context_cannot_be_overwritten_within_a_request(): void
     {
         $tenant = app(TenantContext::class);

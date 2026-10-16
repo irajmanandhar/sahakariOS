@@ -49,7 +49,7 @@ class LedgerAccountService
             ]);
             $this->audit->record('ledger_account.created', $account, compact('code', 'name', 'type') + ['is_postable' => $isPostable]);
 
-            return $account;
+            return $account->refresh();
         });
     }
 }

@@ -36,6 +36,17 @@ class VerifyLedger extends Command
             $problems[] = "line {$row->id} belongs to a different cooperative than its entry";
         }
 
+        // Savings sub-ledger = general ledger, per liability account used by savings products.
+        foreach (DB::select('SELECT p.cooperative_id, p.ledger_account_id, SUM(a.balance) sub,
+                (SELECT COALESCE(SUM(l.credit),0) - COALESCE(SUM(l.debit),0) FROM journal_lines l
+                    WHERE l.cooperative_id = p.cooperative_id AND l.ledger_account_id = p.ledger_account_id) gl
+                FROM savings_products p LEFT JOIN savings_accounts a ON a.savings_product_id = p.id
+                GROUP BY p.cooperative_id, p.ledger_account_id') as $row) {
+            if (bccomp((string) ($row->sub ?? '0'), (string) $row->gl, 2) !== 0) {
+                $problems[] = "cooperative {$row->cooperative_id}: savings accounts total {$row->sub} but ledger account {$row->ledger_account_id} shows {$row->gl}";
+            }
+        }
+
         foreach ($problems as $p) {
             $this->error($p);
         }
