@@ -13,6 +13,7 @@ use App\Models\JournalEntry;
 use App\Models\Loan;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Notifications\SmsOutbox;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
 use Illuminate\Support\Facades\DB;
@@ -125,6 +126,8 @@ class LoanRepaymentService
                 'created_by' => $by?->id, 'created_at' => now(), 'updated_at' => now(),
             ]);
             $this->recordSource($channel, $from, $loan, $entry, $value, $id, $by);
+            app(SmsOutbox::class)->queue($loan->member, sprintf('%s received for loan %s on %s. Outstanding principal %s.',
+                SmsOutbox::rs((string) $value), $loan->loan_number, $date, SmsOutbox::rs((string) $outstanding)));
             $this->audit->record($closed ? 'loan.closed' : 'loan.repaid', $loan, [
                 'amount' => (string) $value, 'principal' => (string) $principal, 'interest' => (string) $due['interest'], 'penalty' => (string) $due['penalty'],
             ], $by);

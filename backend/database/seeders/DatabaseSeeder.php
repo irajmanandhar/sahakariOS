@@ -63,7 +63,7 @@ class DatabaseSeeder extends Seeder
 
         // Fiscal year 2083/84, today's business day (Nepal time) and a demo "Manager"
         // role with every current permission, if not already there.
-        app(TenantContext::class)->runAs($coop->id, $branch->id, function () use ($staff, $approver) {
+        app(TenantContext::class)->runAs($coop->id, $branch->id, function () use ($coop, $staff, $approver) {
             $manager = Role::firstOrCreate(['key' => 'manager'], ['name' => 'Manager']);
             $manager->syncPermissions(Permission::cases());
             $manager->assignTo($staff);
@@ -84,6 +84,7 @@ class DatabaseSeeder extends Seeder
                 ['DEMO-3', 'Equity (demo)', 'equity', null, null],
                 ['DEMO-3.1', 'Share capital (demo)', 'equity', 'DEMO-3', 'share_capital'],
                 ['DEMO-3.2', 'Reserve fund (demo)', 'equity', 'DEMO-3', 'reserve_fund'],
+                ['DEMO-3.3', 'Opening balances (demo)', 'equity', 'DEMO-3', 'opening_balance'],
                 ['DEMO-4', 'Income (demo)', 'income', null, null],
                 ['DEMO-4.1', 'Loan interest income (demo)', 'income', 'DEMO-4', 'loan_interest_income'],
                 ['DEMO-4.2', 'Penalty interest income (demo)', 'income', 'DEMO-4', 'loan_penalty_income'],
@@ -99,6 +100,10 @@ class DatabaseSeeder extends Seeder
                     app(LedgerMappings::class)->set($role, $code);
                 }
             }
+
+            // DEMO bank account tag for liquidity, capital and bank reconciliation.
+            $bank = LedgerAccount::query()->where('code', 'DEMO-1.2')->value('id');
+            \Illuminate\Support\Facades\DB::table('ledger_account_tags')->insertOrIgnore(['cooperative_id' => $coop->id, 'ledger_account_id' => $bank, 'tag' => 'bank_deposit', 'created_at' => now(), 'updated_at' => now()]);
 
             // DEMO loan product (savings-secured). Placeholder terms for local testing only.
             if (! LoanProduct::query()->where('code', 'DEMO-LS')->exists()) {

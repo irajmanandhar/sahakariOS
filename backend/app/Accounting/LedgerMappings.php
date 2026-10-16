@@ -24,6 +24,7 @@ class LedgerMappings
         'loan_fee_income' => ['Loan service fee income', 'income'],
         'loan_loss_provision' => ['Loan loss provision (contra asset)', 'asset'],
         'loan_loss_provision_expense' => ['Loan loss provision expense', 'expense'],
+        'opening_balance' => ['Opening balances from the previous system (must net to zero after cut-over)', 'equity'],
     ];
 
     public function __construct(private TenantContext $tenant, private AuditLogger $audit) {}

@@ -136,6 +136,11 @@ export default function HomePage() {
               Ledger roles
             </Button>
           )}
+          {can('bank.reconcile') && (
+            <Button variant="text" onClick={() => router.push('/banking')}>
+              Banking
+            </Button>
+          )}
           {can('report.view') && (
             <Button variant="text" onClick={() => router.push('/reports')}>
               Reports

@@ -42,6 +42,7 @@ trait BuildsCooperative
         'E' => ['Equity', 'equity', null, null],
         'E1' => ['Share capital', 'equity', 'E', 'share_capital'],
         'E2' => ['Reserve fund', 'equity', 'E', 'reserve_fund'],
+        'E3' => ['Opening balances', 'equity', 'E', 'opening_balance'],
         'I' => ['Income', 'income', null, null],
         'I1' => ['Loan interest', 'income', 'I', 'loan_interest_income'],
         'I2' => ['Penalty interest', 'income', 'I', 'loan_penalty_income'],

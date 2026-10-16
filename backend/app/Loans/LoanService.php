@@ -16,6 +16,7 @@ use App\Models\LoanProduct;
 use App\Models\Member;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Notifications\SmsOutbox;
 use App\Support\NumberSequence;
 use App\Tenancy\TenantContext;
 use Brick\Math\BigDecimal;
@@ -239,6 +240,9 @@ class LoanService
                 'principal' => (string) $principal, 'fee' => (string) $fee, 'outstanding_after' => (string) $principal,
                 'journal_entry_id' => $entry->id, 'created_by' => $by?->id, 'created_at' => now(), 'updated_at' => now(),
             ]);
+            app(SmsOutbox::class)->queue($loan->member, sprintf('Loan %s of %s disbursed to savings account %s on %s. First instalment due %s.',
+                $loan->loan_number, SmsOutbox::rs((string) $principal), SmsOutbox::mask($savings->account_number), $today,
+                DB::table('loan_schedules')->where('loan_id', $loan->id)->orderBy('installment_number')->value('due_date')));
             $this->audit->record('loan.disbursed', $loan, ['principal' => (string) $principal, 'fee' => (string) $fee, 'savings_account' => $savings->account_number], $by);
 
             return $loan->refresh();

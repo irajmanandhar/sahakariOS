@@ -4,6 +4,7 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\PlatformSessionController;
 use App\Http\Controllers\Auth\StaffSessionController;
+use App\Http\Controllers\BankReconciliationController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\BusinessDayController;
 use App\Http\Controllers\ComplianceController;
@@ -18,6 +19,8 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SavingsController;
 use App\Http\Controllers\ShareController;
 use App\Http\Controllers\TrialBalanceController;
+use App\Tenancy\TenantContext;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 // Stateless: no session, no cookies.
@@ -110,6 +113,13 @@ Route::middleware('web')->group(function () {
         Route::get('/reports/statements/{code}', [ReportController::class, 'show'])->middleware('can:report.view');
         Route::get('/ledger-account-tags', [ReportController::class, 'tags'])->middleware('can:ledger.view');
         Route::put('/ledger-account-tags', [ReportController::class, 'setTags'])->middleware('can:ledger_account.manage');
+
+        // Bank reconciliation and notifications
+        Route::post('/bank-accounts/{code}/statements', [BankReconciliationController::class, 'import'])->middleware('can:bank.reconcile');
+        Route::get('/bank-accounts/{code}/reconciliation', [BankReconciliationController::class, 'show'])->middleware('can:bank.reconcile');
+        Route::get('/sms-messages', fn (TenantContext $t) => response()->json(['data' => DB::table('sms_messages')
+            ->where('cooperative_id', $t->cooperativeId())->orderByDesc('id')->limit(100)
+            ->get(['id', 'member_id', 'body', 'status', 'attempts', 'sent_at', 'created_at'])]))->middleware('can:notification.view');
     });
 
     Route::prefix('platform/auth')->group(function () {

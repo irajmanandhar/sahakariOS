@@ -53,6 +53,20 @@ services:
       timeout: 3s
       retries: 5
 
+  # Runs scheduled tasks (e.g. sms:send every minute). Same image as the API.
+  scheduler:
+    image: sahakarios-api:dev
+    command: ["php", "artisan", "schedule:work"]
+    volumes:
+      - ./backend:/var/www/backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
   nginx:
     image: nginx:1.28.3-alpine
     volumes:

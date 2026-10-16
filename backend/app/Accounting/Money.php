@@ -22,6 +22,15 @@ final class Money
         return BigDecimal::of($amount)->toScale(2, RoundingMode::Unnecessary);
     }
 
+    /** Like parse(), but allows a leading minus (e.g. an overdrawn bank statement balance). */
+    public static function parseSigned(string $amount): BigDecimal
+    {
+        $negative = str_starts_with($amount, '-');
+        $value = self::parse($negative ? substr($amount, 1) : $amount);
+
+        return $negative ? $value->negated() : $value;
+    }
+
     public static function zero(): BigDecimal
     {
         return BigDecimal::of('0.00');

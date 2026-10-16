@@ -17,6 +17,7 @@ use App\Models\Member;
 use App\Models\SavingsAccount;
 use App\Models\SavingsProduct;
 use App\Models\User;
+use App\Notifications\SmsOutbox;
 use App\Support\NumberSequence;
 use App\Tenancy\TenantContext;
 use Brick\Math\BigDecimal;
@@ -191,6 +192,9 @@ class SavingsService
                 'created_by' => $by?->id, 'created_at' => now(), 'updated_at' => now(),
             ]);
             $this->cash->record($locked->member, $entry, $type === 'deposit' ? 'in' : 'out', (string) $value, 'savings_'.$type, $id);
+            app(SmsOutbox::class)->queue($locked->member, sprintf('%s %s %s account %s on %s. Balance %s.',
+                SmsOutbox::rs((string) $value), $type === 'deposit' ? 'deposited to' : 'withdrawn from', $locked->product->name,
+                SmsOutbox::mask($locked->account_number), $businessDate, SmsOutbox::rs((string) $balance)));
 
             return $this->result(DB::table('savings_transactions')->find($id), $locked);
         });

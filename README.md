@@ -2,10 +2,18 @@
 
 Cloud core-banking and accounting platform for Nepali savings and credit cooperatives.
 
-**Status: Phase 1 in progress.** Tenant schema (cooperatives, branches, staff memberships, platform
-users) and session authentication are in place. No financial features or member data yet.
-See [`docs/architecture.md`](docs/architecture.md), [`docs/regulatory-register.md`](docs/regulatory-register.md)
-and [`docs/authentication.md`](docs/authentication.md) (auth design and required environment variables).
+**Status: MVP feature-complete for local evaluation (not deployed).** Multi-tenant staff app with
+session authentication, per-cooperative roles, tamper-evident audit log, BS calendar, double-entry
+ledger, members with encrypted KYM, shares, savings (with interest), loans (with repayment,
+classification and provisioning), statements and NCRA returns, bank reconciliation, SMS outbox
+and a pilot import. Accounting treatments are **PROPOSED** until a qualified cooperative
+accountant signs them off.
+
+Docs: [`architecture.md`](docs/architecture.md) · [`regulatory-register.md`](docs/regulatory-register.md) ·
+[`authentication.md`](docs/authentication.md) · [`members.md`](docs/members.md) ·
+[`accounting.md`](docs/accounting.md) · [`savings.md`](docs/savings.md) · [`loans.md`](docs/loans.md) ·
+[`reports.md`](docs/reports.md) · [`operations.md`](docs/operations.md)
+
 
 ## Layout
 

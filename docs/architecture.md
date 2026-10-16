@@ -267,14 +267,14 @@ Control: `approval_policies` (operation, threshold, roles), `approval_requests`,
 | 1 | Platform admins, cooperatives, branches, users, roles/permissions, tenant context, audit log — **done 2026-10-16** (role admin UI, maker-checker pending) | cross-tenant test suite passes |
 | 2 | BS calendar + fiscal years + business day — **done 2026-10-16** (open/close day via HTTP waits for roles) | conversion tests vs verified table |
 | 3 | Accounting engine: chart of accounts, posting service, reversal, immutability triggers, trial balance — **done 2026-10-16**, see [`accounting.md`](accounting.md) | invariant + concurrency tests pass |
-| 4 | Members + KYC + documents | AML guidance read & mapped first |
-| 5 | Shares | share register reconciles to GL |
-| 6 | Savings products/accounts, teller sessions, deposits/withdrawals, approvals | E2E teller flow; overdraw race test |
-| 7 | Savings interest accrual/capitalisation, day close | accountant-approved golden cases |
-| 8 | Loan products, applications, approvals, disbursement, schedules | golden schedules approved |
-| 9 | Repayments, accrual, classification, provisioning | regulatory tables 3.1/3.2 match manual calc |
-| 10 | Bank accounts, reconciliation, financial statements, regulatory returns (4.1, 6.1/6.2, interest report) | traceability: each figure drills to lines |
-| 11 | Notifications (SMS), pilot data migration, UAT with customer | sign-off |
+| 4 | Members + KYC + documents — **done** (`members.md`) | AML guidance read & mapped first |
+| 5 | Shares — **done** (`savings.md`) | share register reconciles to GL |
+| 6 | Savings products/accounts, deposits/withdrawals — **done**; teller tills PLANNED | E2E teller flow; overdraw race test |
+| 7 | Savings interest accrual/capitalisation, day close — **done** (golden cases await accountant) | accountant-approved golden cases |
+| 8 | Loan products, applications, approvals, disbursement, schedules — **done** (`loans.md`) | golden schedules approved |
+| 9 | Repayments, classification, provisioning — **done** | regulatory tables 3.1/3.2 match manual calc |
+| 10 | Bank reconciliation, financial statements, regulatory returns — **done** (`reports.md`) | traceability: each figure drills to lines |
+| 11 | SMS outbox, pilot import — **done**; provider + UAT with customer PLANNED (`operations.md`) | sign-off |
 | Later | FY close & profit appropriation, rescheduling, write-off, branches, member portal, multi-customer billing | — |
 
 ## 14. Open decisions (owner: product owner)
