@@ -218,12 +218,30 @@ class ConvertLegacyWorkbook extends Command
             return;
         }
 
+        // Copied template blocks leave unused accounts behind: only blocks holding money count.
+        $blocks = array_filter($blocks, fn ($b) => $isLoan
+            ? ($b['last']['disbursed'] ?? 0) !== 0 || ($b['last']['principal_outstanding'] ?? 0) !== 0
+            : $b['rows'] !== [] || ($b['opening'] !== null && (float) $b['opening'] !== 0.0));
+        if ($blocks === []) {
+            return;
+        }
         $accounts = array_count_values(array_column($blocks, 'account'));
-        if (max($accounts) > 1) {
-            $this->finding('Sheets with repeated account numbers (not a passbook sheet): not converted', $sheet);
+        if (max($accounts) >= 3 && max($accounts) > count($blocks) / 2) {
+            $this->finding('Sheets where most blocks share one account number (a working sheet, not passbooks): not converted', $sheet);
 
             return;
         }
+        $seen = [];
+        foreach ($blocks as &$b) {
+            $n = $seen[$b['account']] = ($seen[$b['account']] ?? 0) + 1;
+            if ($accounts[$b['account']] > 1) {
+                $this->finding('Account numbers used by more than one passbook block (renamed -2, -3 …; check which is right)', "{$sheet} {$b['account']}".($n > 1 ? " → {$b['account']}-{$n}" : ' (first kept)'));
+                if ($n > 1) {
+                    $b['account'] .= "-{$n}";
+                }
+            }
+        }
+        unset($b);
         $isLoan ? $this->finishLoans($sheet, $blocks) : $this->finishSavings($sheet, $blocks, $minimum, $width);
     }
 
@@ -269,6 +287,7 @@ class ConvertLegacyWorkbook extends Command
 
             return;
         }
+        $b['first_day'] ??= $ad->format('Y-m-d'); // the brought-forward balance is dated the first day of the sheet
         $balance = $this->value($at('balance'));
         if (is_numeric($balance)) {
             $b['last_balance'] = $balance;
@@ -318,14 +337,14 @@ class ConvertLegacyWorkbook extends Command
             $count++;
             $this->passbookMembers[$b['member']] = true;
             $legacy = $b['account'];
-            $first = $b['rows'][0]['ad'] ?? null;
+            $first = $b['first_day'] ?? null;
             if ((float) $opening !== 0.0) {
                 $this->history[] = [$first ?? '', '', '', $b['member'], $code, $legacy, 'opening', ltrim($opening, '-'), 'Brought forward'];
                 if (str_starts_with($opening, '-')) {
                     $this->finding('Negative opening balances (overdrawn): import fails until corrected', $label);
                 }
                 if ($first === null) {
-                    $this->finding('Accounts with an opening balance but no transactions: give the opening row a date in history.csv', $label);
+                    $this->finding('Accounts with an opening balance but no dated rows: give the opening row a date in history.csv', $label);
                 }
             }
             $running = $this->dec($opening);

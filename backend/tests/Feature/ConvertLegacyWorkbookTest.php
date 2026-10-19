@@ -62,7 +62,7 @@ class ConvertLegacyWorkbookTest extends TestCase
         $writer = new Writer;
         $writer->openToFile($file);
         $d = fn (string $s) => new DateTimeImmutable($s);
-        $header = fn (string $type, string $acc, string $rate) => [5 => [[0 => $type]], 7 => [[0 => $acc]], 8 => [[0 => $rate]]];
+        $header = fn (string $type, string $acc, string $rate) => [5 => [[0 => $type], [0 => $type], [0 => $type]], 7 => [[0 => $acc]], 8 => [[0 => $rate]]];
 
         // Savings: account 1001 of member 7, heading rate 6% but formulas use 3%.
         $savings = $header('P]lR5s art', 'A/c No.1001              Member No.07', 'Interest Rate:6%       Cheque No.From 00') + [
@@ -74,6 +74,10 @@ class ConvertLegacyWorkbookTest extends TestCase
             18 => [[0 => $d('2083-07-06'), 2 => $d('2026-10-23'), 5 => 50, 8 => 1350]],                  // after --as-of: ignored
             19 => [[5 => 9]],                                                                             // amount without a date
         ];
+        $savings[7][1] = [0 => 'A/c No.1001              Member No.08'];        // same number reused for another member
+        $savings[13][1] = [0 => 'cufl8sf] df}Hbft', 8 => 50];
+        $savings[14][1] = [2 => $d('2026-10-18'), 8 => 50];
+        $savings[7][2] = [0 => 'A/c No.1001              Member No.09'];        // copied empty template block: ignored
         // Share register: member 7 bought 3 shares.
         $shares = $header('JolQmut z]o/ vftf', 'A/c No.001     Member No.07', 'Interest Rate:0%') + [
             13 => [[0 => 'cufl8sf] df}Hbft', 8 => 200]],
@@ -105,7 +109,7 @@ class ConvertLegacyWorkbookTest extends TestCase
     public function test_converts_a_legacy_workbook_into_import_files_and_findings(): void
     {
         $this->artisan('migration:convert-excel', ['file' => $this->workbook(), 'out' => $this->dir, '--as-of' => '2026-10-22'])
-            ->expectsOutputToContain('Wrote 1 member(s), 7 history row(s) for 2 account(s), 1 loan(s)')
+            ->expectsOutputToContain('Wrote 1 member(s), 8 history row(s) for 3 account(s), 1 loan(s)')
             ->assertSuccessful();
 
         $this->assertSame([
@@ -119,11 +123,13 @@ class ConvertLegacyWorkbookTest extends TestCase
             '2026-10-19,2083-07-02,V-5,7,ACHHIK,1001,interest,12.50,ब्याज',
             '2026-10-21,,,7,ACHHIK,1001,tax,0.75,कर',
             '2026-10-22,2083-07-05,"Member Renew Charge",7,ACHHIK,1001,charge,100.00,',
+            '2026-10-18,,,8,ACHHIK,1001-2,opening,50.00,"Brought forward"',
             '2026-10-18,,,7,SHARE,001,opening,200.00,"Brought forward"',
             '2026-10-18,2083-07-01,,7,SHARE,001,deposit,100.00,',
         ], $this->lines('history.csv'));
-        $this->assertSame(['product_code,legacy_account_no,member_number,balance', 'ACHHIK,1001,7,1400.00', 'SHARE,001,7,300.00'], $this->lines('expected_balances.csv'));
-        $this->assertSame('ACHHIK,Achhik,"ऐच्छिक बचत",6,500,1', $this->lines('products.csv')[1]);
+        $this->assertSame(['product_code,legacy_account_no,member_number,balance', 'ACHHIK,1001,7,1400.00', 'ACHHIK,1001-2,8,50.00', 'SHARE,001,7,300.00'], $this->lines('expected_balances.csv'));
+
+        $this->assertSame('ACHHIK,Achhik,"ऐच्छिक बचत",6,500,2', $this->lines('products.csv')[1]);
         $this->assertSame('Loan,001,7,12,10000.00,1000.00,9000.00,4.00,4.00,0.00,0.00,2026-10-19', $this->lines('loans.csv')[1]);
 
         $findings = file_get_contents("{$this->dir}/findings.txt");
@@ -138,6 +144,8 @@ class ConvertLegacyWorkbookTest extends TestCase
             'Loan interest charged on principal + unpaid interest + fine',
             'Members marked Kharej (cancelled) in the Member List: not imported: 1',
             'Member numbers listed more than once in the Member List (first entry used): 1',
+            'Account numbers used by more than one passbook block (renamed -2, -3 …; check which is right): 2',
+            'Achhik 1001 → 1001-2',
         ] as $expected) {
             $this->assertStringContainsString($expected, $findings);
         }
