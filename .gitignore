@@ -5,3 +5,9 @@
 .DS_Store
 .idea/
 .vscode/
+
+# Member data exports (Excel/CSV) never go into Git
+*.xlsx
+*.xls
+*.xlsm
+/imports/

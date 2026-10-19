@@ -39,6 +39,9 @@ class SavingsService
     /** NCRA Std 2/3.1: term savings of up to 3 years. */
     public const MAX_TERM_MONTHS = 36;
 
+    /** Transaction types that add to the balance; every other type takes away. */
+    public const CREDIT_TYPES = ['deposit', 'interest', 'transfer_in', 'loan_disbursement'];
+
     public function __construct(
         private TenantContext $tenant,
         private PostingService $posting,

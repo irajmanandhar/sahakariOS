@@ -31,6 +31,9 @@ scheduler (`php artisan schedule:work`: runs `sms:send` every minute).
 6. Imported members have their KYM review due at once: complete their Schedule-1 forms.
 Loans are **not** imported yet (their schedules need a separate import tool).
 
+To bring over passbook **history** (backdated rows) instead of one cut-over balance, or to convert
+the old Excel passbook workbook, follow [`migration.md`](migration.md).
+
 ## Backups and restore (to set up for production — PLANNED)
 - Nightly full MySQL backup + binary logs for point-in-time recovery; encrypted, off-site.
 - Back up `APP_KEY` separately and securely: it decrypts member KYM data (see `members.md`).

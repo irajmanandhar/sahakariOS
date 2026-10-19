@@ -40,8 +40,8 @@ export type Member = {
   status: 'applied' | 'active' | 'rejected' | 'exited';
   full_name: string;
   full_name_ne: string | null;
-  gender: string;
-  date_of_birth: string;
+  gender: string | null;
+  date_of_birth: string | null;
   date_of_birth_bs: string | null;
   phone: string | null;
   is_pep: boolean;

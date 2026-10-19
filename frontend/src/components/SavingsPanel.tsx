@@ -18,7 +18,8 @@ import { newIdempotencyKey } from '@/lib/idempotency';
 
 type Account = { id: number; account_number: number; product: { id: number; code: string; name: string; type: string }; status: string; balance: string; maturity_date: string | null };
 type Product = { id: number; code: string; name: string; type: string; status: string };
-type Line = { id: number; date: string; type: string; channel: string; amount: string; balance_after: string };
+type Line = { id: number; date: string; date_bs: string | null; reference: string | null; particulars: string; debit: string | null; credit: string | null; can_withdraw: string; balance: string };
+type Passbook = { legacy_account_number: string | null; minimum_balance: string; accrued_interest: string; transactions: Line[] };
 
 /** Member's savings accounts: open, cash deposit / withdrawal, statement. Amounts are strings end to end. */
 export default function SavingsPanel({ memberId, permissions, active }: { memberId: number; permissions: string[]; active: boolean }) {
@@ -27,7 +28,8 @@ export default function SavingsPanel({ memberId, permissions, active }: { member
   const [products, setProducts] = useState<Product[]>([]);
   const [productId, setProductId] = useState('');
   const [selected, setSelected] = useState<number | null>(null);
-  const [lines, setLines] = useState<Line[]>([]);
+  const [book, setBook] = useState<Passbook | null>(null);
+  const lines = book?.transactions ?? [];
   const [form, setForm] = useState({ amount: '', note: '', key: newIdempotencyKey('sav') });
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -47,8 +49,7 @@ export default function SavingsPanel({ memberId, permissions, active }: { member
 
   const statement = useCallback(async (id: number) => {
     setSelected(id);
-    const { data } = await api<{ data: { transactions: Line[] } }>(`/savings-accounts/${id}`);
-    setLines(data.transactions);
+    setBook((await api<{ data: Passbook }>(`/savings-accounts/${id}`)).data);
   }, []);
 
   async function run(action: () => Promise<unknown>, ok: string) {
@@ -112,17 +113,32 @@ export default function SavingsPanel({ memberId, permissions, active }: { member
               {can('savings.withdraw') && <Button variant="outlined" onClick={() => move('withdrawals')}>Cash withdrawal</Button>}
             </Box>
           )}
-          <Table size="small" sx={{ mt: 2 }}>
-            <TableHead>
-              <TableRow><TableCell>Date</TableCell><TableCell>Type</TableCell><TableCell align="right">Amount</TableCell><TableCell align="right">Balance</TableCell></TableRow>
-            </TableHead>
-            <TableBody>
-              {lines.length === 0 && <TableRow><TableCell colSpan={4}>No transactions yet.</TableCell></TableRow>}
-              {lines.map((l) => (
-                <TableRow key={l.id}><TableCell>{l.date}</TableCell><TableCell>{l.type} ({l.channel})</TableCell><TableCell align="right">{l.amount}</TableCell><TableCell align="right">{l.balance_after}</TableCell></TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 3, flexWrap: 'wrap' }}>
+            <Typography variant="subtitle1" component="h3">Passbook</Typography>
+            {book?.legacy_account_number && <Typography variant="body2">Old A/c No. {book.legacy_account_number}</Typography>}
+            {book && <Typography variant="body2">Minimum balance Rs {book.minimum_balance} · Interest accrued, not yet posted Rs {book.accrued_interest}</Typography>}
+            <Button size="small" href={`/api/savings-accounts/${selected}/passbook.csv`}>Download CSV</Button>
+          </Box>
+          <Box sx={{ overflowX: 'auto' }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>मिति (BS)</TableCell><TableCell>Date (AD)</TableCell><TableCell>Voucher No.</TableCell><TableCell>Particulars</TableCell>
+                  <TableCell align="right">Debit</TableCell><TableCell align="right">Credit</TableCell><TableCell align="right">Can withdraw</TableCell><TableCell align="right">Balance</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {lines.length === 0 && <TableRow><TableCell colSpan={8}>No transactions yet.</TableCell></TableRow>}
+                {lines.map((l) => (
+                  <TableRow key={l.id}>
+                    <TableCell>{l.date_bs ?? '—'}</TableCell><TableCell>{l.date}</TableCell><TableCell>{l.reference ?? ''}</TableCell><TableCell>{l.particulars}</TableCell>
+                    <TableCell align="right">{l.debit ?? ''}</TableCell><TableCell align="right">{l.credit ?? ''}</TableCell>
+                    <TableCell align="right">{l.can_withdraw}</TableCell><TableCell align="right">{l.balance}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
         </>
       )}
     </Paper>

@@ -74,7 +74,7 @@ class ImportOpeningBalancesTest extends TestCase
         $this->import()
             ->expectsOutputToContain('Row 3: duplicate member_number 101.')
             ->expectsOutputToContain('Row 3: date_of_birth must be an AD date YYYY-MM-DD.')
-            ->expectsOutputToContain('Row 3: gender must be female, male or other.')
+            ->expectsOutputToContain('Row 3: gender must be female, male, other or blank.')
             ->expectsOutputToContain('Row 3: unknown savings product NOPE.')
             ->assertFailed();
         $this->assertSame(0, Member::query()->withoutGlobalScopes()->count());

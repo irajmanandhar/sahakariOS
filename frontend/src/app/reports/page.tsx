@@ -10,6 +10,7 @@ import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
@@ -21,7 +22,10 @@ type Row = { label: string; amount: string; note?: string };
 type Report = { code: string; title: string; as_of?: string; from?: string; to?: string; sections: { title: string; rows: Row[]; total?: string }[]; checks: { label: string; value: string; requirement: string; ok: boolean; source: string }[] };
 type Ttr = { business_date: string; report_by: string; member_number: number; full_name: string; direction: string; total: string; transactions: number };
 
+type DayBook = { from: string; to: string; products: string[]; opening: Record<string, string>; closing: Record<string, string>; days: { date: string; date_bs: string | null; products: Record<string, { credit: string; debit: string; balance: string }> }[] };
+
 const TTR = 'threshold_transactions';
+const DAY_BOOK = 'daily_balances';
 
 /** Statements and NCRA returns, computed live from the ledger. Formats are PROPOSED until NCRA's templates are obtained. */
 export default function ReportsPage() {
@@ -31,19 +35,24 @@ export default function ReportsPage() {
   const [asOf, setAsOf] = useState('');
   const [report, setReport] = useState<Report | null>(null);
   const [ttr, setTtr] = useState<Ttr[] | null>(null);
+  const [from, setFrom] = useState('');
+  const [dayBook, setDayBook] = useState<DayBook | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fail = useCallback((e: unknown) => redirectForAuthError(e, router.replace) || setError(errorMessage(e)), [router]);
   useEffect(() => {
-    api<{ data: { code: string; title: string }[] }>('/reports').then((r) => setList([...r.data, { code: TTR, title: 'Threshold transactions to report to FIU (AML Instruction 12)' }])).catch(fail);
+    api<{ data: { code: string; title: string }[] }>('/reports').then((r) => setList([...r.data, { code: DAY_BOOK, title: 'Day book by product (savings and shares, like the old Balance sheet)' }, { code: TTR, title: 'Threshold transactions to report to FIU (AML Instruction 12)' }])).catch(fail);
   }, [fail]);
 
   async function run() {
     setError(null);
     setReport(null);
     setTtr(null);
+    setDayBook(null);
     try {
-      if (code === TTR) {
+      if (code === DAY_BOOK) {
+        setDayBook((await api<{ data: DayBook }>(`/reports/daily-balances?from=${from}&to=${asOf}`)).data);
+      } else if (code === TTR) {
         setTtr((await api<{ data: Ttr[] }>('/reports/threshold-transactions')).data);
       } else {
         setReport((await api<{ data: Report }>(`/reports/statements/${code}${asOf ? `?as_of=${asOf}` : ''}`)).data);
@@ -61,7 +70,8 @@ export default function ReportsPage() {
         <TextField select size="small" label="Report" value={code} onChange={(e) => setCode(e.target.value)} sx={{ minWidth: 360 }}>
           {list.map((r) => <MenuItem key={r.code} value={r.code}>{r.title}</MenuItem>)}
         </TextField>
-        {code !== TTR && <TextField size="small" type="date" label="As of (AD)" value={asOf} onChange={(e) => setAsOf(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />}
+        {code === DAY_BOOK && <TextField size="small" type="date" label="From (AD)" value={from} onChange={(e) => setFrom(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />}
+        {code !== TTR && <TextField size="small" type="date" label={code === DAY_BOOK ? 'To (AD)' : 'As of (AD)'} value={asOf} onChange={(e) => setAsOf(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />}
         <Button variant="contained" onClick={run}>Show</Button>
       </Box>
       {error && <Alert severity="error">{error}</Alert>}
@@ -92,6 +102,41 @@ export default function ReportsPage() {
             </Paper>
           ))}
         </>
+      )}
+
+      {dayBook && (
+        <Paper sx={{ overflowX: 'auto' }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell rowSpan={2}>मिति (BS)</TableCell><TableCell rowSpan={2}>Date (AD)</TableCell>
+                {dayBook.products.map((p) => <TableCell key={p} colSpan={3} align="center">{p}</TableCell>)}
+              </TableRow>
+              <TableRow>
+                {dayBook.products.map((p) => ['Credit', 'Debit', 'Balance'].map((h) => <TableCell key={`${p}-${h}`} align="right">{h}</TableCell>))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              <TableRow>
+                <TableCell colSpan={2}>Brought forward</TableCell>
+                {dayBook.products.map((p) => <TableCell key={p} colSpan={3} align="right">{dayBook.opening[p] ?? '0.00'}</TableCell>)}
+              </TableRow>
+              {dayBook.days.map((d) => (
+                <TableRow key={d.date}>
+                  <TableCell>{d.date_bs ?? '—'}</TableCell><TableCell>{d.date}</TableCell>
+                  {dayBook.products.map((p) => {
+                    const m = d.products[p];
+                    return [m?.credit ?? '', m?.debit ?? '', m?.balance ?? ''].map((v, i) => <TableCell key={`${p}-${i}`} align="right">{v}</TableCell>);
+                  })}
+                </TableRow>
+              ))}
+              <TableRow>
+                <TableCell colSpan={2}><strong>Closing</strong></TableCell>
+                {dayBook.products.map((p) => <TableCell key={p} colSpan={3} align="right"><strong>{dayBook.closing[p] ?? '0.00'}</strong></TableCell>)}
+              </TableRow>
+            </TableBody>
+          </Table>
+        </Paper>
       )}
 
       {ttr && (

@@ -21,7 +21,9 @@ use RuntimeException;
  * Pilot migration: members with their opening share and savings balances.
  *
  * CSV header: member_number,full_name,date_of_birth,gender,phone,membership_date,share_units,savings_product_code,savings_balance
- * (dates AD YYYY-MM-DD; one savings account per row, optional).
+ * (dates AD YYYY-MM-DD; date_of_birth and gender may be blank; one savings account per row, optional).
+ * Members only (no balances) need no open business day, so passbook history can be
+ * replayed afterwards with migration:import-history.
  *
  * - All rows are validated before anything is written; any error aborts.
  * - One journal entry per member, dated the open business day:
@@ -48,9 +50,10 @@ class ImportOpeningBalances extends Command
             return self::FAILURE;
         }
         $branch = DB::table('branches')->where('cooperative_id', $coop->id)->where('is_head_office', true)->first();
-        $rows = $this->readCsv((string) $this->argument('file'));
 
         try {
+            $rows = Csv::read((string) $this->argument('file'), self::HEADER);
+
             return $tenant->runAs($coop->id, $branch->id, fn () => $this->import($rows));
         } catch (RuntimeException $e) {
             $this->error($e->getMessage());
@@ -101,7 +104,7 @@ class ImportOpeningBalances extends Command
         $tenant = app(TenantContext::class);
         $member = Member::query()->forceCreate([
             'cooperative_id' => $tenant->cooperativeId(), 'branch_id' => $tenant->branchId(), 'member_number' => (int) $r['member_number'],
-            'status' => 'active', 'full_name' => $r['full_name'], 'date_of_birth' => $r['date_of_birth'], 'gender' => $r['gender'],
+            'status' => 'active', 'full_name' => $r['full_name'], 'date_of_birth' => $r['date_of_birth'] ?: null, 'gender' => $r['gender'] ?: null,
             'phone' => $r['phone'] ?: null, 'declares_nepali_citizen' => true, 'declares_resides_in_working_area' => true,
             'declares_no_other_same_type_membership' => true, 'applied_on' => $r['membership_date'], 'decided_at' => $r['membership_date'].' 00:00:00',
             'decision_reason' => 'Imported from previous system', 'next_kyc_review_on' => BusinessDayService::today(), // KYM due at once
@@ -157,7 +160,8 @@ class ImportOpeningBalances extends Command
                 $errors[] = $e->getMessage();
             }
         }
-        if (! app(BusinessDayService::class)->current()) {
+        $hasBalances = collect($rows)->contains(fn ($r) => (int) $r['share_units'] > 0 || (preg_match(Money::PATTERN, $r['savings_balance']) && ! BigDecimal::of($r['savings_balance'])->isZero()));
+        if ($hasBalances && ! app(BusinessDayService::class)->current()) {
             $errors[] = 'Open the business day (the cut-over date) first.';
         }
         foreach ($rows as $i => $r) {
@@ -175,12 +179,15 @@ class ImportOpeningBalances extends Command
                 $add('full_name is required (max 150).');
             }
             foreach (['date_of_birth', 'membership_date'] as $d) {
+                if ($d === 'date_of_birth' && $r[$d] === '') {
+                    continue; // unknown in old registers: collected at the KYM review
+                }
                 if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $r[$d]) || ! checkdate((int) substr($r[$d], 5, 2), (int) substr($r[$d], 8, 2), (int) substr($r[$d], 0, 4))) {
                     $add("{$d} must be an AD date YYYY-MM-DD.");
                 }
             }
-            if (! in_array($r['gender'], ['female', 'male', 'other'], true)) {
-                $add('gender must be female, male or other.');
+            if (! in_array($r['gender'], ['', 'female', 'male', 'other'], true)) {
+                $add('gender must be female, male, other or blank.');
             }
             if ($r['share_units'] !== '' && ! ctype_digit($r['share_units'])) {
                 $add('share_units must be a whole number.');
@@ -197,20 +204,6 @@ class ImportOpeningBalances extends Command
         }
 
         return $errors;
-    }
-
-    private function readCsv(string $path): array
-    {
-        if (! is_readable($path)) {
-            throw new RuntimeException("Cannot read {$path}.");
-        }
-        $lines = array_map('str_getcsv', preg_split('/\r\n|\n|\r/', trim((string) file_get_contents($path))));
-        $header = array_map(fn ($h) => strtolower(trim($h)), array_shift($lines) ?? []);
-        if ($header !== self::HEADER) {
-            throw new RuntimeException('CSV header must be: '.implode(',', self::HEADER));
-        }
-
-        return array_map(fn ($l) => array_combine(self::HEADER, array_map('trim', array_pad($l, count(self::HEADER), ''))), $lines);
     }
 
     private function summary(int $imported, int $skipped): int

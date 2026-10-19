@@ -91,6 +91,7 @@ Route::middleware('web')->group(function () {
         Route::get('/members/{member}/savings-accounts', [SavingsController::class, 'memberAccounts'])->middleware('can:savings.view');
         Route::post('/members/{member}/savings-accounts', [SavingsController::class, 'open'])->middleware('can:savings.open');
         Route::get('/savings-accounts/{savingsAccount}', [SavingsController::class, 'statement'])->middleware('can:savings.view');
+        Route::get('/savings-accounts/{savingsAccount}/passbook.csv', [SavingsController::class, 'passbookCsv'])->middleware('can:savings.view');
         Route::post('/savings-accounts/{savingsAccount}/deposits', [SavingsController::class, 'deposit'])->middleware('can:savings.deposit');
         Route::post('/savings-accounts/{savingsAccount}/withdrawals', [SavingsController::class, 'withdraw'])->middleware('can:savings.withdraw');
 
@@ -110,6 +111,7 @@ Route::middleware('web')->group(function () {
 
         // Reports
         Route::get('/reports', [ReportController::class, 'index'])->middleware('can:report.view');
+        Route::get('/reports/daily-balances', [ReportController::class, 'dailyBalances'])->middleware('can:report.view');
         Route::get('/reports/statements/{code}', [ReportController::class, 'show'])->middleware('can:report.view');
         Route::get('/ledger-account-tags', [ReportController::class, 'tags'])->middleware('can:ledger.view');
         Route::put('/ledger-account-tags', [ReportController::class, 'setTags'])->middleware('can:ledger_account.manage');

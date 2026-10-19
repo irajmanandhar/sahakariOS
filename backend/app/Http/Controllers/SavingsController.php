@@ -3,15 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Accounting\Money;
+use App\Audit\AuditLogger;
+use App\Calendar\BsCalendar;
+use App\Calendar\OutOfCalendarRange;
 use App\Http\Controllers\Concerns\RequiresIdempotencyKey;
 use App\Models\Member;
 use App\Models\SavingsAccount;
 use App\Models\SavingsProduct;
 use App\Savings\SavingsService;
+use Brick\Math\BigDecimal;
+use Brick\Math\RoundingMode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SavingsController
 {
@@ -56,15 +62,67 @@ class SavingsController
         return response()->json(['data' => $this->present($savings->open($member, $product, $request->user())->load('product'))], 201);
     }
 
+    /** Passbook: every row with BS and AD dates, voucher, debit/credit, running balance and what could be withdrawn. */
     public function statement(SavingsAccount $savingsAccount): JsonResponse
     {
-        $rows = DB::table('savings_transactions')->where('savings_account_id', $savingsAccount->id)->orderBy('id')->get()
-            ->map(fn ($r) => [
-                'id' => $r->id, 'date' => substr($r->created_at, 0, 10), 'type' => $r->type, 'channel' => $r->channel,
-                'amount' => Money::format($r->amount), 'balance_after' => Money::format($r->balance_after), 'narration' => $r->narration,
-            ]);
+        $savingsAccount->load('product');
 
-        return response()->json(['data' => $this->present($savingsAccount->load('product')) + ['transactions' => $rows]]);
+        return response()->json(['data' => $this->present($savingsAccount) + [
+            'legacy_account_number' => $savingsAccount->legacy_account_number,
+            'minimum_balance' => Money::format($savingsAccount->product->minimum_balance),
+            'accrued_interest' => Money::format((string) BigDecimal::of($savingsAccount->accrued_interest)->toScale(2, RoundingMode::Down)),
+            'transactions' => $this->passbook($savingsAccount),
+        ]]);
+    }
+
+    /** The same passbook as CSV (opens in Excel), for auditors. Each export is recorded in the audit log. */
+    public function passbookCsv(Request $request, SavingsAccount $savingsAccount, AuditLogger $audit): StreamedResponse
+    {
+        $savingsAccount->load('product');
+        $rows = $this->passbook($savingsAccount);
+        $audit->record('savings_account.passbook_exported', $savingsAccount, ['rows' => count($rows)], $request->user());
+
+        return response()->streamDownload(function () use ($rows) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF"); // UTF-8 marker so Excel shows Nepali text
+            fputcsv($out, ['Nepali date', 'English date', 'Voucher No.', 'Particulars', 'Debit', 'Credit', 'Can withdraw', 'Balance'], escape: '');
+            foreach ($rows as $r) {
+                fputcsv($out, [$r['date_bs'], $r['date'], $r['reference'], $r['particulars'], $r['debit'], $r['credit'], $r['can_withdraw'], $r['balance']], escape: '');
+            }
+            fclose($out);
+        }, "passbook-{$savingsAccount->account_number}.csv", ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    private function passbook(SavingsAccount $account): array
+    {
+        $minimum = BigDecimal::of($account->product->minimum_balance);
+
+        return DB::table('savings_transactions as t')->join('journal_entries as e', 'e.id', '=', 't.journal_entry_id')
+            ->where('t.savings_account_id', $account->id)->orderBy('t.id')
+            ->get(['t.id', 't.type', 't.channel', 't.amount', 't.balance_after', 't.narration', 't.reference', 'e.entry_date', 'e.entry_number'])
+            ->map(function ($r) use ($minimum) {
+                $credit = in_array($r->type, SavingsService::CREDIT_TYPES, true);
+                $available = BigDecimal::of($r->balance_after)->minus($minimum);
+
+                return [
+                    'id' => $r->id, 'date' => $r->entry_date, 'date_bs' => $this->bs($r->entry_date), 'reference' => $r->reference,
+                    'journal_entry_number' => $r->entry_number, 'type' => $r->type, 'channel' => $r->channel,
+                    'particulars' => $r->narration ?? ucfirst(str_replace('_', ' ', $r->type)),
+                    'debit' => $credit ? null : Money::format($r->amount), 'credit' => $credit ? Money::format($r->amount) : null,
+                    'amount' => Money::format($r->amount), 'balance' => Money::format($r->balance_after), 'balance_after' => Money::format($r->balance_after),
+                    'can_withdraw' => Money::format($available->isNegative() ? '0' : (string) $available),
+                    'narration' => $r->narration,
+                ];
+            })->all();
+    }
+
+    private function bs(string $ad): ?string
+    {
+        try {
+            return (string) app(BsCalendar::class)->toBs($ad);
+        } catch (OutOfCalendarRange) {
+            return null;
+        }
     }
 
     public function deposit(Request $request, SavingsAccount $savingsAccount, SavingsService $savings): JsonResponse

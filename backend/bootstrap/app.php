@@ -9,7 +9,9 @@ use App\Http\Middleware\EnsureAccountCanSignIn;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Members\MembershipRuleViolation;
 use App\Notifications\SendSms;
+use App\Support\ConvertLegacyWorkbook;
 use App\Support\ImportOpeningBalances;
+use App\Support\ImportPassbookHistory;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -47,5 +49,5 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
     })
-    ->withCommands([VerifyAuditLog::class, VerifyLedger::class, SendSms::class, ImportOpeningBalances::class])
+    ->withCommands([VerifyAuditLog::class, VerifyLedger::class, SendSms::class, ImportOpeningBalances::class, ImportPassbookHistory::class, ConvertLegacyWorkbook::class])
     ->create();

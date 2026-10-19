@@ -12,7 +12,7 @@ accountant signs them off.
 Docs: [`architecture.md`](docs/architecture.md) · [`regulatory-register.md`](docs/regulatory-register.md) ·
 [`authentication.md`](docs/authentication.md) · [`members.md`](docs/members.md) ·
 [`accounting.md`](docs/accounting.md) · [`savings.md`](docs/savings.md) · [`loans.md`](docs/loans.md) ·
-[`reports.md`](docs/reports.md) · [`operations.md`](docs/operations.md)
+[`reports.md`](docs/reports.md) · [`operations.md`](docs/operations.md) · [`migration.md`](docs/migration.md)
 
 
 ## Layout

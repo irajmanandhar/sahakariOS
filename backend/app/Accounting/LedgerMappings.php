@@ -25,6 +25,8 @@ class LedgerMappings
         'loan_loss_provision' => ['Loan loss provision (contra asset)', 'asset'],
         'loan_loss_provision_expense' => ['Loan loss provision expense', 'expense'],
         'opening_balance' => ['Opening balances from the previous system (must net to zero after cut-over)', 'equity'],
+        'interest_tax_payable' => ['Tax deducted from savings interest, payable to the government (PROPOSED; rate needs tax advice)', 'liability'],
+        'service_charge_income' => ['Service charges deducted from savings accounts', 'income'],
     ];
 
     public function __construct(private TenantContext $tenant, private AuditLogger $audit) {}

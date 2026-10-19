@@ -111,8 +111,8 @@ export default function MemberDetail() {
         <Grid container spacing={1}>
           {[
             ['Name (Devanagari)', member.full_name_ne ?? '—'],
-            ['Gender', member.gender],
-            ['Date of birth', `${member.date_of_birth}${member.date_of_birth_bs ? ` (BS ${member.date_of_birth_bs})` : ''}`],
+            ['Gender', member.gender ?? 'Not recorded'],
+            ['Date of birth', member.date_of_birth ? `${member.date_of_birth}${member.date_of_birth_bs ? ` (BS ${member.date_of_birth_bs})` : ''}` : 'Not recorded'],
             ['Phone', member.phone ?? '—'],
             ['Applied on', member.applied_on],
             ['Decision', pending ? (member.days_to_decide! < 0 ? `${-member.days_to_decide!} days overdue` : `due in ${member.days_to_decide} days`) : `${member.status} ${member.decided_at?.slice(0, 10) ?? ''}`],
