@@ -41,4 +41,5 @@ enum Permission: string
     case ReportView = 'report.view';
     case BankReconcile = 'bank.reconcile';
     case NotificationView = 'notification.view';
+    case MigrationImport = 'migration.import';
 }

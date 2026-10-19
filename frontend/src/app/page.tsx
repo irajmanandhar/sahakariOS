@@ -136,6 +136,11 @@ export default function HomePage() {
               Ledger roles
             </Button>
           )}
+          {can('migration.import') && (
+            <Button variant="text" onClick={() => router.push('/settings/import')}>
+              Import
+            </Button>
+          )}
           {can('bank.reconcile') && (
             <Button variant="text" onClick={() => router.push('/banking')}>
               Banking

@@ -81,17 +81,25 @@ How rows are classified (check them in `history.csv` before importing):
 
 ## Running the import
 
-1. Set up the cooperative: fiscal year, chart of accounts, ledger roles (`cash`, `opening_balance`,
-   `share_capital`, `savings_interest_expense`, `interest_tax_payable`, `service_charge_income`) and the
-   savings products (codes as in `products.csv`, or edit `history.csv`). **Do not open a business day**
-   before the first history date: history is replayed day by day and business days only move forward.
-2. `php artisan migration:import <COOP> members.csv --dry-run`, fix, then run it for real.
-3. `php artisan migration:import-history <COOP> history.csv --expected=expected_balances.csv --dry-run`,
-   fix every reported row, then run it for real. For each date it opens the business day, posts that
-   day's rows (same journal entries as the counter would), and closes the day.
-4. Post the rest of the old trial balance (cash, bank, loans, reserves …) against the opening balance
+1. Create the cooperative (no business day is opened, so history can start at the fiscal year start):
+   ```sh
+   docker compose exec api php artisan cooperative:create <CODE> "<Full name>" --admin=<staff email> \
+     --fiscal-year=2083 --products=/var/www/backend/storage/app/products.csv
+   ```
+   It creates the head office, fiscal year, a Manager role for the admins, a **draft** chart of accounts
+   with every ledger role mapped, and one general savings product per `products.csv` line (quarterly
+   interest, PROPOSED: review types, rates and minimum balances; delete the copied products.csv after).
+   **Do not open a business day** before the history is imported: business days only move forward.
+2. Sign in, choose the new cooperative, open **Import** (needs the `migration.import` permission).
+3. *Members*: choose `members.csv`, press **Check** (nothing is saved), fix what it lists, then **Import**.
+4. *Passbook history*: choose `history.csv` and `expected_balances.csv`, **Check**, then **Import**. For
+   each date the import opens the business day, posts that day's rows (same journal entries as the counter)
+   and closes the day. Uploaded files are deleted from the server after each run; every check and import
+   is in the audit log. Limits: 50 MB per file, 15 minutes per run (about 250,000 member rows).
+   The same imports can be run as commands: `migration:import`, `migration:import-history` (`--dry-run`, `--expected`).
+5. Post the rest of the old trial balance (cash, bank, loans, reserves …) against the opening balance
    account until it is 0.00; set up the loans from `loans.csv`; run `ledger:verify`.
-5. Sign off: the auditor compares the passbooks (member page → Savings → Passbook, or *Download CSV*)
+6. Sign off: the auditor compares the passbooks (member page → Savings → Passbook, or *Download CSV*)
    and the **Day book by product** report with the old workbook.
 
 PROPOSED (needs the accountant): interest and tax rows are taken as the old system calculated them; the
@@ -107,6 +115,6 @@ thresholds (deposits ≥ Rs 10 lakh, withdrawals > Rs 5 lakh) is imported as rec
 | Interest/Tax columns | Interest is accrued daily and posted at the product's posting dates; the passbook shows interest accrued but not yet posted. |
 | Formulas that can be overwritten | Posted entries cannot be changed (database triggers); corrections are reversals; `ledger:verify` and `audit:verify` prove the books and the audit trail are intact. |
 
-Not done yet: loan history import, uploading the workbook through the web screen (it is a command
-run by the implementer, because the files are large and hold member data), and the bank, expense,
-income and remittance sheets (their totals go in with the opening trial balance).
+Not done yet: loan history import, converting the .xlsx workbook from the web screen (conversion is a
+command: a 192 MB workbook takes over an hour), and the bank, expense, income and remittance sheets
+(their totals go in with the opening trial balance).

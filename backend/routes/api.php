@@ -10,6 +10,7 @@ use App\Http\Controllers\BusinessDayController;
 use App\Http\Controllers\ComplianceController;
 use App\Http\Controllers\CurrentCooperativeController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\ImportController;
 use App\Http\Controllers\JournalEntryController;
 use App\Http\Controllers\LedgerAccountController;
 use App\Http\Controllers\LedgerMappingController;
@@ -110,6 +111,7 @@ Route::middleware('web')->group(function () {
         Route::post('/loan-provisioning', [LoanController::class, 'provision'])->middleware('can:loan.provision');
 
         // Reports
+        Route::post('/imports/{kind}', [ImportController::class, 'run'])->middleware('can:migration.import');
         Route::get('/reports', [ReportController::class, 'index'])->middleware('can:report.view');
         Route::get('/reports/daily-balances', [ReportController::class, 'dailyBalances'])->middleware('can:report.view');
         Route::get('/reports/statements/{code}', [ReportController::class, 'show'])->middleware('can:report.view');

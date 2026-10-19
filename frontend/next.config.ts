@@ -4,6 +4,11 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  experimental: {
+    // Settings → Import sends CSV files of up to 50 MB and waits for the import to finish.
+    proxyClientMaxBodySize: "55mb",
+    proxyTimeout: 900_000,
+  },
   // Backend-for-Frontend: the browser only ever talks to this origin. /api/*
   // is proxied server-side to Laravel, so Laravel's HttpOnly session cookie
   // and XSRF-TOKEN cookie are same-origin and no CORS is needed.

@@ -36,7 +36,7 @@ describe('NewMemberPage', () => {
     expect(body.declares_nepali_citizen).toBe(true);
     expect(body.kym.pep.is_pep).toBe(false);
     expect(push).not.toHaveBeenCalled();
-  });
+  }, 15_000); // long form: about 2 s alone, slower when the machine is busy
 
   it('opens the new member after a successful application', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ data: { id: 42 } }, 201)));

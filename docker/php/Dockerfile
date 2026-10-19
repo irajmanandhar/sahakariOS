@@ -9,6 +9,9 @@ RUN apk add --no-cache icu-libs libzip \
     && docker-php-ext-enable redis \
     && apk del .build-deps
 
+# Upload limits for Settings → Import (CSV files up to 50 MB).
+COPY uploads.ini /usr/local/etc/php/conf.d/zz-uploads.ini
+
 # Composer binary copied from the official image (pinned).
 COPY --from=composer:2.10.3 /usr/bin/composer /usr/bin/composer
 
