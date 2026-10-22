@@ -45,9 +45,10 @@ for that exists yet.
 
 ## Frontend — IMPLEMENTED (tested)
 
-`/members` (list, filters incl. "KYM review due"), `/members/new` (Schedule-1 form, field-level
-server errors), `/members/[id]` (details, document upload/view, risk, approve/reject, audited KYM
-view). Buttons follow the permissions returned by `/api/auth/cooperative`; the API enforces them.
+`/members` (list, filters incl. "KYM review due"), `/members/new` (Schedule-1 in nine steps with
+review, field-level server errors jump to their step, BS or AD dates), `/members/[id]` (tabs: details,
+documents with required-document checklist and audited preview, shares, savings, loans, audited KYM
+view, risk and approve/reject with confirmation), `/members/[id]/kym` (KYM review: new version). Buttons follow the permissions returned by `/api/auth/cooperative`; the API enforces them.
 
 Forms are `method="post"` and their submit button stays disabled until React has hydrated, so a
 click or Enter before the JavaScript loads can never do a native GET that would put passwords or

@@ -12,7 +12,8 @@ accountant signs them off.
 Docs: [`architecture.md`](docs/architecture.md) · [`regulatory-register.md`](docs/regulatory-register.md) ·
 [`authentication.md`](docs/authentication.md) · [`members.md`](docs/members.md) ·
 [`accounting.md`](docs/accounting.md) · [`savings.md`](docs/savings.md) · [`loans.md`](docs/loans.md) ·
-[`reports.md`](docs/reports.md) · [`operations.md`](docs/operations.md) · [`migration.md`](docs/migration.md)
+[`reports.md`](docs/reports.md) · [`operations.md`](docs/operations.md) · [`migration.md`](docs/migration.md) ·
+[`frontend.md`](docs/frontend.md) · [`frontend-gaps.md`](docs/frontend-gaps.md)
 
 
 ## Layout
@@ -59,6 +60,8 @@ docker compose exec api php artisan db:seed      # synthetic demo data; refuses 
 ```
 Open http://localhost:3000 and sign in as `staff@demo.test` or `approver@demo.test`, password
 `local-dev-password` (local only). Use the second user to approve what the first entered.
+Platform administrators sign in at http://localhost:3000/platform/login (`ops@demo.test`).
+The staff app is in English and Nepali (account menu → Language, Nepali numerals, light/dark theme).
 
 ## Tests
 
@@ -66,6 +69,9 @@ Open http://localhost:3000 and sign in as `staff@demo.test` or `approver@demo.te
 docker compose exec api php artisan test      # backend, uses the separate sahakarios_test database
 docker compose exec api ./vendor/bin/pint --test
 cd frontend && npm test && npm run lint && npx tsc --noEmit && npm run build
+# End to end + accessibility (stack up and seeded; writes synthetic data to the local DB):
+cd frontend && npm run build && npx next start -p 3100 &
+cd frontend && E2E_BASE_URL=http://localhost:3100 PW_CHANNEL=chrome npm run e2e
 ```
 
 `docker/mysql/init/01-test-database.sql` creates `sahakarios_test` the first time the MySQL volume
