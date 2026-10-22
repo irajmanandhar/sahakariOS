@@ -171,7 +171,11 @@ Unauthenticated requests get `401 {"message":"Unauthenticated."}` (never a redir
   Laravel decides access; pages only follow its answers (401 → `/login`; 409/403 → `/select-cooperative`).
 - The session cookie is never visible to JavaScript (verified in headless Chrome: `document.cookie`
   contains only `XSRF-TOKEN`). The client also sends `X-XSRF-TOKEN` for browsers without `Sec-Fetch-Site`.
-- Platform-admin screens are not built.
+- `/forgot-password` and `/reset-password` (the token is read once and removed from the address bar).
+  An idle warning appears 2 minutes before the session expires (`NEXT_PUBLIC_SESSION_IDLE_MINUTES`).
+- Platform admins: `/platform/login` and a minimal `/platform` page. Management screens wait for
+  their API (`frontend-gaps.md` G8).
+- Staff screens and conventions: [`frontend.md`](frontend.md).
 
 Browser check (headless Chrome, synthetic seed account), production build and dev server:
 signed-out `/` → `/login`; wrong password → generic error; sign-in → home with cooperative and
@@ -215,4 +219,4 @@ cross-site POST rejected (419).
 7. Platform administrators: MFA, provisioning command and their own password reset — not built.
 8. Distributed password guessing (many IPs, one account) is only limited per IP today;
    consider a per-account limit or alerting once real traffic patterns are known.
-9. Frontend: no password-reset page yet (`/reset-password`), no idle-timeout warning.
+9. Frontend: `/reset-password` and the idle warning are built; set `NEXT_PUBLIC_SESSION_IDLE_MINUTES` to the session lifetime.

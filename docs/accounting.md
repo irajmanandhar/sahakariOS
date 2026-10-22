@@ -39,7 +39,10 @@ Amounts must be JSON **strings** such as `"1250.50"`; numbers are refused. Rule 
 422 with a readable message. Replaying an `Idempotency-Key` with the same body returns the
 original entry (200); with a different body it is refused (422).
 
-Frontend: `/ledger` shows the trial balance and recent entries (read-only).
+Frontend: `/ledger` (trial balance as of a date), `/ledger/journal` (entries, viewer with reversal chain
+and "Reverse" with a required reason), `/ledger/journal/new` (manual journal, live exact debit = credit
+check), `/ledger/accounts` (chart of accounts tree, create). Missing drill-down endpoints:
+`frontend-gaps.md` G3.
 
 ## Decisions that need the cooperative's accountant — PROPOSED / open
 
