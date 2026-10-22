@@ -1,129 +1,81 @@
 'use client';
 
-import Alert from '@mui/material/Alert';
+import PrintOutlined from '@mui/icons-material/PrintOutlined';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Chip from '@mui/material/Chip';
-import Container from '@mui/material/Container';
-import Paper from '@mui/material/Paper';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
-import TableHead from '@mui/material/TableHead';
+import TableFooter from '@mui/material/TableFooter';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { api, errorMessage, redirectForAuthError } from '@/lib/api';
+import { useState } from 'react';
+import DataTable, { type Column } from '@/components/DataTable';
+import { DateField } from '@/components/fields';
+import MoneyText from '@/components/MoneyText';
+import PageHeader from '@/components/PageHeader';
+import ReportHeader from '@/components/ReportHeader';
+import StatusChip from '@/components/StatusChip';
+import { useT } from '@/i18n';
+import { useApi } from '@/lib/hooks';
+import type { TrialBalance, TrialBalanceRow } from '@/lib/types';
 
-type TrialBalanceRow = { account_id: number; code: string; name: string; type: string; debit_balance: string; credit_balance: string };
-type TrialBalance = { accounts: TrialBalanceRow[]; total_debit: string; total_credit: string; balanced: boolean };
-type Entry = { id: number; reference: string; entry_date: string; entry_date_bs: string; description: string; total: string; reversal_of_id: number | null };
+/** Trial balance as of a date, summed from journal lines by the API. Amounts stay strings end to end. */
+export default function TrialBalancePage() {
+  const t = useT();
+  const [asOf, setAsOf] = useState('');
+  const [shown, setShown] = useState('');
+  const tb = useApi<TrialBalance>(`/reports/trial-balance${shown ? `?as_of=${shown}` : ''}`);
 
-/** Read-only ledger view. Amounts stay strings end to end (no floating point). */
-export default function LedgerPage() {
-  const router = useRouter();
-  const [tb, setTb] = useState<TrialBalance | null>(null);
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    Promise.all([
-      api<{ data: TrialBalance }>('/reports/trial-balance'),
-      api<{ data: Entry[] }>('/journal-entries'),
-    ])
-      .then(([t, e]) => {
-        setTb(t.data);
-        setEntries(e.data);
-      })
-      .catch((err) => redirectForAuthError(err, router.replace) || setError(errorMessage(err)));
-  }, [router]);
+  const columns: Column<TrialBalanceRow>[] = [
+    { key: 'code', header: t('common.code'), mobile: 'title', noWrap: true },
+    { key: 'name', header: t('ledger.account') },
+    { key: 'type', header: t('common.type'), render: (r) => t(`ledger.types.${r.type}`) },
+    { key: 'debit_balance', header: t('ledger.debit'), money: true },
+    { key: 'credit_balance', header: t('ledger.credit'), money: true },
+  ];
 
   return (
-    <Container sx={{ py: 4 }}>
-      <Button onClick={() => router.push('/')}>← Home</Button>
-      <Typography variant="h5" component="h1" sx={{ my: 2 }}>
-        Ledger
-      </Typography>
-      {error && <Alert severity="error">{error}</Alert>}
-      {!tb && !error && <Typography>Loading…</Typography>}
-      {tb && (
-        <Paper sx={{ mb: 4, overflowX: 'auto' }}>
-          <Typography variant="h6" component="h2" sx={{ p: 2 }}>
-            Trial balance{' '}
-            <Chip size="small" color={tb.balanced ? 'success' : 'error'} label={tb.balanced ? 'Balanced' : 'NOT balanced'} />
-          </Typography>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Code</TableCell>
-                <TableCell>Account</TableCell>
-                <TableCell align="right">Debit</TableCell>
-                <TableCell align="right">Credit</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {tb.accounts.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4}>No postings yet.</TableCell>
-                </TableRow>
-              )}
-              {tb.accounts.map((a) => (
-                <TableRow key={a.account_id}>
-                  <TableCell>{a.code}</TableCell>
-                  <TableCell>{a.name}</TableCell>
-                  <TableCell align="right">{a.debit_balance}</TableCell>
-                  <TableCell align="right">{a.credit_balance}</TableCell>
-                </TableRow>
-              ))}
-              <TableRow>
-                <TableCell colSpan={2}>
-                  <strong>Total</strong>
-                </TableCell>
-                <TableCell align="right">
-                  <strong>{tb.total_debit}</strong>
-                </TableCell>
-                <TableCell align="right">
-                  <strong>{tb.total_credit}</strong>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </Paper>
+    <>
+      <PageHeader
+        title={t('nav.trialBalance')}
+        crumbs={[{ label: t('nav.ledger') }]}
+        subtitle={t('ledger.tbHelp')}
+        actions={<Button startIcon={<PrintOutlined />} onClick={() => window.print()}>{t('common.print')}</Button>}
+      />
+      <Box component="form" method="post" onSubmit={(e) => { e.preventDefault(); setShown(asOf); }} sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'flex-start', mb: 2 }} className="no-print">
+        <DateField label={t('common.asOf')} value={asOf} onChange={setAsOf} />
+        <Button type="submit" variant="contained" sx={{ mt: 0.25 }}>{t('common.show')}</Button>
+        {shown && <Button sx={{ mt: 0.25 }} onClick={() => { setAsOf(''); setShown(''); }}>{t('ledger.latest')}</Button>}
+      </Box>
+      <ReportHeader title={t('nav.trialBalance')} asOf={tb.data?.as_of || shown || null} note={tb.data?.as_of ? undefined : t('ledger.allPostings')} />
+      {tb.data && (
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', mb: 1.5 }}>
+          <StatusChip kind="balance" value={tb.data.balanced ? 'ok' : 'fail'} />
+          <Typography variant="body2">{t('ledger.totalDebit')} <MoneyText value={tb.data.total_debit} strong /></Typography>
+          <Typography variant="body2">{t('ledger.totalCredit')} <MoneyText value={tb.data.total_credit} strong /></Typography>
+        </Box>
       )}
-      {tb && (
-        <Paper sx={{ overflowX: 'auto' }}>
-          <Typography variant="h6" component="h2" sx={{ p: 2 }}>
-            Recent journal entries
-          </Typography>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Reference</TableCell>
-                <TableCell>Date (BS)</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell align="right">Amount</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {entries.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4}>No journal entries yet.</TableCell>
-                </TableRow>
-              )}
-              {entries.map((e) => (
-                <TableRow key={e.id}>
-                  <TableCell>
-                    {e.reference} {e.reversal_of_id && <Chip size="small" label="reversal" />}
-                  </TableCell>
-                  <TableCell>{e.entry_date_bs}</TableCell>
-                  <TableCell>{e.description}</TableCell>
-                  <TableCell align="right">{e.total}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Paper>
-      )}
-    </Container>
+      <DataTable
+        label={t('nav.trialBalance')}
+        columns={columns}
+        rows={tb.data?.accounts ?? []}
+        rowKey={(r) => r.account_id}
+        rowHref={(r) => `/ledger/accounts/${r.account_id}${shown ? `?as_of=${shown}` : ''}`}
+        loading={tb.loading}
+        error={tb.error}
+        onRetry={tb.reload}
+        emptyTitle={t('ledger.noPostings')}
+        csvName={`trial-balance-${tb.data?.as_of ?? 'latest'}`}
+        quickFilter
+        footer={tb.data && (
+          <TableFooter>
+            <TableRow>
+              <TableCell colSpan={3} sx={{ fontWeight: 650, color: 'text.primary' }}>{t('common.total')}</TableCell>
+              <TableCell align="right"><MoneyText value={tb.data.total_debit} strong /></TableCell>
+              <TableCell align="right"><MoneyText value={tb.data.total_credit} strong /></TableCell>
+            </TableRow>
+          </TableFooter>
+        )}
+      />
+    </>
   );
 }
