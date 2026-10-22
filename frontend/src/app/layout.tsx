@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { Metadata, Viewport } from 'next';
 import { Inter, Noto_Sans_Devanagari } from 'next/font/google';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v16-appRouter';
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { width: 'device-width', initialScale: 1 };
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${devanagari.variable}`} suppressHydrationWarning>
       <body>
