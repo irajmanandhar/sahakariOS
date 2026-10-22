@@ -4,6 +4,8 @@
  * the browser sends automatically; this code never sees or stores it.
  */
 
+import type { Membership } from './types';
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -17,50 +19,10 @@ export class ApiError extends Error {
   }
 }
 
-export type User = { id: number; name: string; email: string };
+export type { Branch, BusinessDay, Member, Membership, User } from './types';
 
-export type Membership = {
-  cooperative: { id: number; code: string; name: string; status: string };
-  branch: { id: number; code: string; name: string };
-  /** Present on the current selection only. Hides actions in the UI; the API enforces them. */
-  permissions?: string[];
-};
-
-export type BusinessDay = {
-  date: string;
-  date_bs: string;
-  date_bs_text: string;
-  fiscal_year: string;
-  status: string;
-};
-
-export type Member = {
-  id: number;
-  member_number: number | null;
-  status: 'applied' | 'active' | 'rejected' | 'exited';
-  full_name: string;
-  full_name_ne: string | null;
-  gender: string | null;
-  date_of_birth: string | null;
-  date_of_birth_bs: string | null;
-  phone: string | null;
-  is_pep: boolean;
-  risk_level: 'low' | 'medium' | 'high' | null;
-  next_kyc_review_on: string | null;
-  applied_on: string;
-  days_to_decide: number | null;
-  decided_at: string | null;
-  decision_reason: string | null;
-  documents?: { id: number; type: string; mime_type: string; size_bytes: number; uploaded_at: string }[];
-};
-
-/** Permissions of the current cooperative selection (UI hint only; the API enforces). */
-export async function currentPermissions(): Promise<string[]> {
-  const { data } = await api<{ data: Membership | null }>('/auth/cooperative');
-  return data?.permissions ?? [];
-}
-
-export type Branch = { id: number; code: string; name: string; is_head_office: boolean; status: string };
+/** Fires after every response from the API: the server's idle timer restarted (see IdleTimeout). */
+export const apiActivity = typeof window === 'undefined' ? null : new EventTarget();
 
 /** CSRF token Laravel sets in the readable XSRF-TOKEN cookie (not a credential). */
 function xsrfToken(): string | undefined {
@@ -83,6 +45,7 @@ export async function api<T>(path: string, options: { method?: string; body?: un
     credentials: 'same-origin',
     cache: 'no-store',
   });
+  apiActivity?.dispatchEvent(new Event('response'));
 
   if (response.status === 204) return undefined as T;
 
@@ -97,6 +60,17 @@ export async function api<T>(path: string, options: { method?: string; body?: un
   return body as T;
 }
 
+/** Fetches a private file (member document) for preview; same session and checks as api(). */
+export async function apiBlob(path: string): Promise<Blob> {
+  const response = await fetch(`/api${path}`, { credentials: 'same-origin', cache: 'no-store' });
+  apiActivity?.dispatchEvent(new Event('response'));
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(response.status, body?.message ?? 'Request failed.');
+  }
+  return response.blob();
+}
+
 /** Where to go after a successful staff login. */
 export async function destinationAfterLogin(): Promise<string> {
   const { data } = await api<{ data: Membership[] }>('/auth/cooperatives');
@@ -107,18 +81,6 @@ export async function destinationAfterLogin(): Promise<string> {
   }
 
   return '/select-cooperative';
-}
-
-/** User-facing text for a failed request. */
-export function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (error.status === 429) {
-      return `Too many attempts. Try again in ${error.retryAfter ?? 60} seconds.`;
-    }
-    return error.message;
-  }
-  console.error('Unexpected error', error);
-  return 'Could not reach the server. Check your connection and try again.';
 }
 
 /**
@@ -138,4 +100,23 @@ export function redirectForAuthError(error: unknown, replace: (path: string) => 
     return true;
   }
   return false;
+}
+
+/** Permissions of the current cooperative selection (UI hint only; the API enforces). */
+export async function currentPermissions(): Promise<string[]> {
+  const { data } = await api<{ data: Membership | null }>('/auth/cooperative');
+  return data?.permissions ?? [];
+}
+
+
+/** User-facing text for a failed request. */
+export function errorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.status === 429) {
+      return `Too many attempts. Try again in ${error.retryAfter ?? 60} seconds.`;
+    }
+    return error.message;
+  }
+  console.error('Unexpected error', error);
+  return 'Could not reach the server. Check your connection and try again.';
 }
