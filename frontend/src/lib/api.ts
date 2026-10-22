@@ -101,22 +101,3 @@ export function redirectForAuthError(error: unknown, replace: (path: string) => 
   }
   return false;
 }
-
-/** Permissions of the current cooperative selection (UI hint only; the API enforces). */
-export async function currentPermissions(): Promise<string[]> {
-  const { data } = await api<{ data: Membership | null }>('/auth/cooperative');
-  return data?.permissions ?? [];
-}
-
-
-/** User-facing text for a failed request. */
-export function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (error.status === 429) {
-      return `Too many attempts. Try again in ${error.retryAfter ?? 60} seconds.`;
-    }
-    return error.message;
-  }
-  console.error('Unexpected error', error);
-  return 'Could not reach the server. Check your connection and try again.';
-}

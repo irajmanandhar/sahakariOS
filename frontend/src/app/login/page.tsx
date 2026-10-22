@@ -1,22 +1,27 @@
 'use client';
 
 import Alert from '@mui/material/Alert';
-import Button from '@mui/material/Button';
-import Container from '@mui/material/Container';
-import Paper from '@mui/material/Paper';
+import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
+import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type FormEvent, useState } from 'react';
-import { api, destinationAfterLogin, errorMessage } from '@/lib/api';
-import { useHydrated } from '@/lib/useHydrated';
+import { type FormEvent, useState, useSyncExternalStore } from 'react';
+import AuthCard from '@/components/AuthCard';
+import { SubmitButton } from '@/components/fields';
+import { describeError } from '@/components/States';
+import { useT } from '@/i18n';
+import { api, destinationAfterLogin } from '@/lib/api';
+
+const noop = () => () => {};
 
 export default function LoginPage() {
+  const t = useT();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const hydrated = useHydrated();
+  // Read without useSearchParams so the page stays fully static.
+  const reason = useSyncExternalStore(noop, () => new URLSearchParams(window.location.search).get('reason'), () => null);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -31,33 +36,21 @@ export default function LoginPage() {
       });
       router.replace(await destinationAfterLogin());
     } catch (err) {
-      setError(errorMessage(err));
+      setError(describeError(t, err));
       setSubmitting(false);
     }
   }
 
   return (
-    <Container maxWidth="xs" sx={{ py: 8 }}>
-      <Paper sx={{ p: 4 }}>
-        <Typography variant="h5" component="h1" gutterBottom>
-          SahakariOS sign in
-        </Typography>
-        <Stack component="form" method="post" spacing={2} onSubmit={onSubmit} noValidate>
-          {error && <Alert severity="error">{error}</Alert>}
-          <TextField label="Email" name="email" type="email" autoComplete="username" required fullWidth />
-          <TextField
-            label="Password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            fullWidth
-          />
-          <Button type="submit" variant="contained" disabled={!hydrated || submitting}>
-            {submitting ? 'Signing in…' : 'Sign in'}
-          </Button>
-        </Stack>
-      </Paper>
-    </Container>
+    <AuthCard title={t('auth.signInTitle')} subtitle={t('auth.signInHelp')}>
+      <Stack component="form" method="post" spacing={2} onSubmit={onSubmit} noValidate>
+        {reason === 'idle' && !error && <Alert severity="info">{t('shell.signedOutIdle')}</Alert>}
+        {error && <Alert severity="error" role="alert">{error}</Alert>}
+        <TextField label={t('auth.email')} name="email" type="email" autoComplete="username" required fullWidth size="medium" />
+        <TextField label={t('auth.password')} name="password" type="password" autoComplete="current-password" required fullWidth size="medium" />
+        <SubmitButton size="large" submitting={submitting}>{submitting ? t('auth.signingIn') : t('auth.signIn')}</SubmitButton>
+        <Link component={NextLink} href="/forgot-password" variant="body2">{t('auth.forgot')}</Link>
+      </Stack>
+    </AuthCard>
   );
 }
